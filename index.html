@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Play Arcade</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <button class="menu-button" type="button" aria-label="Open menu">≡</button>
+    <button class="brand" type="button" id="homeButton" aria-label="Back to game list">
+      <span class="brand-mark">Q</span>
+      <span><strong>quick</strong><strong>play</strong></span>
+    </button>
+    <label class="search-box" aria-label="Search games">
+      <input type="search" id="searchInput" placeholder="Search games and categories">
+      <span>⌕</span>
+    </label>
+    <div class="top-actions" aria-label="Player actions">
+      <button type="button" aria-label="Notifications">!</button>
+      <button type="button" aria-label="Favorites">♡</button>
+      <button type="button" aria-label="Friends">oo</button>
+    </div>
+    <div class="status-pill" id="statusPill">Pick a game</div>
+  </header>
+
+  <aside class="side-rail" aria-label="Game sections">
+    <span class="rail-active">H</span>
+    <span>☆</span>
+    <span>F</span>
+    <span>R</span>
+    <span>S</span>
+    <span>P</span>
+    <span>G</span>
+    <span>?</span>
+  </aside>
+
+  <main class="page-shell">
+    <section class="library" id="libraryView" aria-labelledby="libraryTitle">
+      <div class="category-strip" aria-label="Categories">
+        <button type="button" class="category-card cyan">
+          <span>Fast starts</span>
+          <strong>5-minute fun</strong>
+        </button>
+        <button type="button" class="category-card pink">
+          <span>Classic arcade</span>
+          <strong>Everyone knows</strong>
+        </button>
+        <button type="button" class="category-card green">
+          <span>With friends</span>
+          <strong>Easy to learn</strong>
+        </button>
+      </div>
+
+      <div class="section-heading">
+        <h1 id="libraryTitle">Top games today</h1>
+        <span class="mini-flag">Quick Play</span>
+      </div>
+
+      <div class="game-grid">
+        <button class="game-tile featured" type="button" data-game="snake" aria-label="Play Snake">
+          <span class="badge updated">Updated</span>
+          <canvas class="thumb" width="420" height="260" data-thumb="snake"></canvas>
+          <span class="tile-copy">
+            <strong>Snake</strong>
+            <span>Eat apples, grow longer, avoid yourself.</span>
+          </span>
+        </button>
+
+        <button class="game-tile" type="button" data-game="tetris" aria-label="Play Tetris">
+          <span class="badge top">Top</span>
+          <canvas class="thumb" width="420" height="260" data-thumb="tetris"></canvas>
+          <span class="tile-copy">
+            <strong>Tetris</strong>
+            <span>Stack blocks, clear rows, stay alive.</span>
+          </span>
+        </button>
+
+        <button class="game-tile" type="button" data-game="sled" aria-label="Play Snow Sled 3D">
+          <span class="badge hot">Hot</span>
+          <canvas class="thumb" width="420" height="260" data-thumb="sled"></canvas>
+          <span class="tile-copy">
+            <strong>Snow Sled 3D</strong>
+            <span>Dodge trees and gates on a fast snowy run.</span>
+          </span>
+        </button>
+      </div>
+
+      <div class="section-heading lower">
+        <h2>Featured games</h2>
+        <button class="view-more" type="button">View more</button>
+      </div>
+
+      <div class="mini-grid" aria-hidden="true">
+        <div class="mini-card blue">Snake run</div>
+        <div class="mini-card purple">Block stack</div>
+        <div class="mini-card teal">Snow rush</div>
+        <div class="mini-card yellow">Quick score</div>
+      </div>
+    </section>
+
+    <section class="play-screen is-hidden" id="playView" aria-live="polite">
+      <div class="play-header">
+        <button class="icon-button" type="button" id="backButton" aria-label="Back to game list">←</button>
+        <div>
+          <p class="kicker" id="gameMode">Now playing</p>
+          <h1 id="gameTitle">Snake</h1>
+        </div>
+        <button class="primary-button" type="button" id="restartButton">Restart</button>
+      </div>
+
+      <div class="game-shell">
+        <div class="canvas-wrap">
+          <canvas id="gameCanvas" width="720" height="540"></canvas>
+          <div class="overlay" id="gameOverlay">
+            <strong id="overlayTitle">Ready?</strong>
+            <span id="overlayText">Press Start to play.</span>
+            <button class="primary-button" type="button" id="startButton">Start</button>
+          </div>
+        </div>
+
+        <aside class="score-panel" aria-label="Game details">
+          <div>
+            <span class="panel-label">Score</span>
+            <strong id="scoreValue">0</strong>
+          </div>
+          <div>
+            <span class="panel-label">Best</span>
+            <strong id="bestValue">0</strong>
+          </div>
+          <div>
+            <span class="panel-label">Controls</span>
+            <p id="controlText">Arrow keys or WASD</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
