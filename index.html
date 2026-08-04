@@ -8,14 +8,14 @@
 </head>
 <body>
   <header class="topbar">
-    <button class="menu-button" type="button" aria-label="Open menu">≡</button>
+    <button class="menu-button" type="button" aria-label="Open menu">=</button>
     <button class="brand" type="button" id="homeButton" aria-label="Back to game list">
       <span class="brand-mark">Q</span>
       <span><strong>quick</strong><strong>play</strong></span>
     </button>
     <label class="search-box" aria-label="Search games">
       <input type="search" id="searchInput" placeholder="Search games and categories">
-      <span>⌕</span>
+      <span>O</span>
     </label>
     <div class="top-actions" aria-label="Player actions">
       <button type="button" aria-label="Notifications">!</button>
@@ -27,7 +27,7 @@
 
   <aside class="side-rail" aria-label="Game sections">
     <span class="rail-active">H</span>
-    <span>☆</span>
+    <span>*</span>
     <span>F</span>
     <span>R</span>
     <span>S</span>
@@ -48,7 +48,7 @@
           <strong>Everyone knows</strong>
         </button>
         <button type="button" class="category-card green">
-          <span>With friends</span>
+          <span>Puzzle picks</span>
           <strong>Easy to learn</strong>
         </button>
       </div>
@@ -59,7 +59,7 @@
       </div>
 
       <div class="game-grid">
-        <button class="game-tile featured" type="button" data-game="snake" aria-label="Play Snake">
+        <button class="game-tile" type="button" data-game="snake" aria-label="Play Snake">
           <span class="badge updated">Updated</span>
           <canvas class="thumb" width="420" height="260" data-thumb="snake"></canvas>
           <span class="tile-copy">
@@ -85,6 +85,24 @@
             <span>Dodge trees and gates on a fast snowy run.</span>
           </span>
         </button>
+
+        <button class="game-tile" type="button" data-game="twenty48" aria-label="Play 2048">
+          <span class="badge top">Top</span>
+          <canvas class="thumb" width="420" height="260" data-thumb="twenty48"></canvas>
+          <span class="tile-copy">
+            <strong>2048</strong>
+            <span>Slide numbers together and build a huge tile.</span>
+          </span>
+        </button>
+
+        <button class="game-tile" type="button" data-game="blast" aria-label="Play Block Blast">
+          <span class="badge hot">Hot</span>
+          <canvas class="thumb" width="420" height="260" data-thumb="blast"></canvas>
+          <span class="tile-copy">
+            <strong>Block Blast</strong>
+            <span>Place blocks, clear rows and columns.</span>
+          </span>
+        </button>
       </div>
 
       <div class="section-heading lower">
@@ -96,7 +114,7 @@
         <div class="mini-card blue">Snake run</div>
         <div class="mini-card purple">Block stack</div>
         <div class="mini-card teal">Snow rush</div>
-        <div class="mini-card yellow">Quick score</div>
+        <div class="mini-card yellow">Number merge</div>
       </div>
     </section>
 
