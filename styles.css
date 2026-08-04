@@ -325,6 +325,12 @@ h2 {
   background: #111827;
 }
 
+.thumb-image {
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
 .tile-copy {
   position: absolute;
   inset: auto 0 0;
