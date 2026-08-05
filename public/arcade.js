@@ -23,7 +23,7 @@
 
   const stored = JSON.parse(localStorage.getItem("prizeRushProfile") || "{}");
   const state = {
-    machine:machines[0], clawX:.55, clawY:.06, clawV:0, swinging:0, phase:"ready", held:null,
+    machine:machines[0], clawX:.55, clawY:.06, clawV:0, swinging:0, phase:"ready", held:null, slipped:false,
     plays:3, tickets:Number.isFinite(stored.tickets)?stored.tickets:250,
     wins:stored.wins || JSON.parse(localStorage.getItem("prizeRushWins") || "[]"),
     tried:new Set(stored.tried || JSON.parse(localStorage.getItem("prizeRushTried") || "[]")),
@@ -109,11 +109,27 @@
     }
   }
 
+  function resolveHeldPhysics(dt,time){
+    const p=state.held;if(!p)return;
+    const cp=clawPosition(time), pocketX=cp.x, pocketY=cp.y+.142;
+    const gripMargin=Math.max(.02,state.machine.grip-p.weight), springX=30+gripMargin*48, springY=15+gripMargin*34;
+    const dx=pocketX-p.x,dy=pocketY-p.y;
+    p.vy+=.58*dt;
+    p.vx+=dx*springX*dt;p.vy+=dy*springY*dt;
+    p.vx*=Math.pow(.28,dt);p.vy*=Math.pow(.42,dt);
+    p.x+=p.vx*dt;p.y+=p.vy*dt;
+    p.av+=dx*5.5*dt;p.av*=Math.pow(.2,dt);p.rot+=p.av*dt;
+    const horizontalSlip=Math.abs(p.x-pocketX)>p.r*.98;
+    const verticalSlip=p.y-pocketY>p.r*1.34;
+    if(horizontalSlip||verticalSlip){
+      p.vx+=(p.x-pocketX)*.7;p.vy=Math.max(p.vy,.04);state.pile.push(p);state.held=null;state.slipped=true;beep(135,.16);
+    }
+  }
+
   function render(time){
     const seconds=Math.min((time-last)/1000,.035);last=time;
     if(activeDirection&&state.phase==="ready"){state.clawV+=activeDirection*.65*seconds;state.clawV*=.90;state.clawX+=state.clawV*seconds;state.clawX=Math.max(.18,Math.min(.88,state.clawX));state.swinging=Math.min(1,state.swinging+seconds*3.2);}else{state.clawV*=.86;state.swinging*=Math.pow(.45,seconds);}
-    if(state.held){const cp=clawPosition(time);state.held.x=cp.x;state.held.y=cp.y+.148;state.held.rot=Math.sin(time/120)*.12;state.held.vx=0;state.held.vy=0;}
-    resolvePrizePhysics(seconds,time);drawBackground(canvas.width,canvas.height);state.pile.forEach(p=>drawPrize(p,canvas.width,canvas.height));drawClaw(canvas.width,canvas.height,time);requestAnimationFrame(render);
+    resolvePrizePhysics(seconds,time);resolveHeldPhysics(seconds,time);drawBackground(canvas.width,canvas.height);state.pile.forEach(p=>drawPrize(p,canvas.width,canvas.height));drawClaw(canvas.width,canvas.height,time);requestAnimationFrame(render);
   }
 
   function beep(freq=440,duration=.07){if(!state.sound)return;try{const a=new AudioContext(),o=a.createOscillator(),g=a.createGain();o.frequency.value=freq;o.type="square";g.gain.setValueAtTime(.025,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+duration);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+duration);}catch(_) {}}
@@ -133,13 +149,13 @@
     if(state.plays>0)state.plays--;else state.tickets-=state.machine.cost;
     state.tried.add(state.machine.id);advanceChallenge("play3",1);setChallenge("machines3",state.tried.size);saveProfile();updateUI();
     dropBtn.disabled=true;state.phase="descending";document.getElementById("machineStatus").textContent="PHYSICS ACTIVE";beep(220,.12);
-    const startSway=state.swinging,targetY=.635;state.gripWidth=.068;
+    const startSway=state.swinging,targetY=.635;state.gripWidth=.068;state.slipped=false;
     await tween(1050,p=>state.clawY=.06+(targetY-.06)*ease(p));
     state.phase="grabbing";await tween(440,p=>state.gripWidth=.068-(.030*ease(p)));
     const contact=findPhysicalGrip();
     if(contact){
       const forceRequired=contact.p.weight+state.swinging*.18;
-      if(forceRequired<=state.machine.grip){state.held=contact.p;state.pile.splice(contact.index,1);beep(660,.13);}
+      if(forceRequired<=state.machine.grip){state.held=contact.p;state.pile.splice(contact.index,1);state.held.vx=state.clawV*.18;state.held.vy=.01;beep(660,.13);}
       else {contact.p.vx+=(contact.p.x-state.clawX)*.7;contact.p.vy=-.08;}
     }
     state.phase="rising";await tween(950,p=>state.clawY=targetY-(targetY-.06)*ease(p));
@@ -147,7 +163,7 @@
       state.phase="returning";const start=state.clawX;await tween(900,p=>state.clawX=start+(.10-start)*ease(p));
       const won=state.held;state.held=null;state.wins.push(won.id);state.tickets+=state.machine.id==="monster"?50:25;advanceChallenge("win2",1);if(startSway<.18)advanceChallenge("precision",1);renderCollection();
       showToast(`YOU GOT ${won.name.toUpperCase()}!`,state.machine.id==="monster"?"+50 tickets · real physics grab":"+25 tickets · added to your shelf");beep(880,.2);setTimeout(()=>beep(1100,.25),160);
-    }else{showToast("THE CLAW MISSED","Aim between the prize edges — every grab is geometry, not chance");beep(145,.22);}
+    }else{showToast(state.slipped?"THE PRIZE SLIPPED!":"THE CLAW MISSED",state.slipped?"Move gently after contact — weight and momentum can break the grip":"Aim between the prize edges — every grab is geometry, not chance");beep(145,.22);}
     if(state.pile.length<6)makePile();state.phase="ready";state.clawY=.06;state.gripWidth=.065;dropBtn.disabled=false;document.getElementById("machineStatus").textContent="MACHINE READY";saveProfile();updateUI();
   }
 
