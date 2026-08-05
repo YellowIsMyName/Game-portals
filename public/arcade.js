@@ -79,9 +79,10 @@
     ctx.strokeStyle=skin.color;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,y);ctx.stroke();
     ctx.fillStyle="#665d79";ctx.fillRect(x-25,y-7,50,21);ctx.fillStyle=skin.color;roundedRect(x-18,y-12,36,17,6);
     ctx.fillStyle="#160b2c";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font="bold 12px sans-serif";ctx.fillText(skin.mark,x,y-3);
-    ctx.strokeStyle=skin.color;ctx.lineWidth=6;ctx.lineCap="round";
-    ctx.beginPath();ctx.moveTo(x-12,y+7);ctx.quadraticCurveTo(x-open,y+41,x-open,y+75);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(x+12,y+7);ctx.quadraticCurveTo(x+open,y+41,x+open,y+75);ctx.stroke();ctx.restore();
+    ctx.strokeStyle=skin.color;ctx.lineWidth=8;ctx.lineCap="round";ctx.lineJoin="round";
+    ctx.beginPath();ctx.moveTo(x-12,y+7);ctx.lineTo(x-open*.62,y+38);ctx.lineTo(x-open,y+75);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x+12,y+7);ctx.lineTo(x+open*.62,y+38);ctx.lineTo(x+open,y+75);ctx.stroke();
+    ctx.fillStyle=skin.color;ctx.beginPath();ctx.arc(x-open*.62,y+38,6,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x+open*.62,y+38,6,0,Math.PI*2);ctx.fill();ctx.restore();
     if(state.held) drawPrize(state.held,w,h);
   }
 
@@ -112,15 +113,15 @@
   function resolveHeldPhysics(dt,time){
     const p=state.held;if(!p)return;
     const cp=clawPosition(time), pocketX=cp.x, pocketY=cp.y+.142;
-    const gripMargin=Math.max(.02,state.machine.grip-p.weight), springX=30+gripMargin*48, springY=15+gripMargin*34;
+    const gripMargin=Math.max(.02,state.machine.grip+.04-p.weight), springX=33+gripMargin*50, springY=18+gripMargin*36;
     const dx=pocketX-p.x,dy=pocketY-p.y;
     p.vy+=.58*dt;
     p.vx+=dx*springX*dt;p.vy+=dy*springY*dt;
     p.vx*=Math.pow(.28,dt);p.vy*=Math.pow(.42,dt);
     p.x+=p.vx*dt;p.y+=p.vy*dt;
     p.av+=dx*5.5*dt;p.av*=Math.pow(.2,dt);p.rot+=p.av*dt;
-    const horizontalSlip=Math.abs(p.x-pocketX)>p.r*.98;
-    const verticalSlip=p.y-pocketY>p.r*1.34;
+    const horizontalSlip=Math.abs(p.x-pocketX)>p.r*1.08;
+    const verticalSlip=p.y-pocketY>p.r*1.45;
     if(horizontalSlip||verticalSlip){
       p.vx+=(p.x-pocketX)*.7;p.vy=Math.max(p.vy,.04);state.pile.push(p);state.held=null;state.slipped=true;beep(135,.16);
     }
@@ -139,7 +140,7 @@
   function findPhysicalGrip(){
     const cp=clawPosition(),tipY=cp.y+.125;
     return state.pile.map((p,index)=>({p,index,dx:Math.abs(p.x-cp.x),dy:Math.abs(p.y-tipY)}))
-      .filter(c=>c.dx<Math.max(.043,c.p.r*.92)&&c.dy<c.p.r*1.08)
+      .filter(c=>c.dx<Math.max(.048,c.p.r*1.02)&&c.dy<c.p.r*1.18)
       .sort((a,b)=>(a.dx+a.dy*.35)-(b.dx+b.dy*.35))[0]||null;
   }
 
@@ -156,13 +157,13 @@
     await tween(900,p=>state.gripWidth=.038-Math.sin(p*Math.PI*3)*.003*(1-p));
     const contact=findPhysicalGrip();
     if(contact){
-      const forceRequired=contact.p.weight+state.swinging*.18;
-      if(forceRequired<=state.machine.grip){state.held=contact.p;state.pile.splice(contact.index,1);state.held.vx=state.clawV*.18;state.held.vy=.01;beep(660,.13);}
+      const forceRequired=contact.p.weight+state.swinging*.12;
+      if(forceRequired<=state.machine.grip+.04){state.held=contact.p;state.pile.splice(contact.index,1);state.held.vx=state.clawV*.16;state.held.vy=.01;beep(660,.13);}
       else {contact.p.vx+=(contact.p.x-state.clawX)*.7;contact.p.vy=-.08;}
     }
     state.phase="rising";await tween(950,p=>state.clawY=targetY-(targetY-.06)*ease(p));
     if(state.held){
-      state.phase="returning";const start=state.clawX;await tween(900,p=>state.clawX=start+(.10-start)*ease(p));
+      state.phase="returning";const start=state.clawX;await tween(1050,p=>state.clawX=start+(.10-start)*ease(p));
       const won=state.held;state.held=null;state.wins.push(won.id);state.tickets+=state.machine.id==="monster"?50:25;advanceChallenge("win2",1);if(startSway<.18)advanceChallenge("precision",1);renderCollection();
       showToast(`YOU GOT ${won.name.toUpperCase()}!`,state.machine.id==="monster"?"+50 tickets · real physics grab":"+25 tickets · added to your shelf");beep(880,.2);setTimeout(()=>beep(1100,.25),160);
     }else{showToast(state.slipped?"THE PRIZE SLIPPED!":"THE CLAW MISSED",state.slipped?"Move gently after contact — weight and momentum can break the grip":"Aim between the prize edges — every grab is geometry, not chance");beep(145,.22);}
