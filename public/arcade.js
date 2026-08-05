@@ -2,184 +2,202 @@
   "use strict";
 
   const machines = [
-    { id: "cosmic", name: "COSMIC CLAW", difficulty: "MEDIUM GRIP", cost: 25, accent: "#24e0d0", bg: "#142b58", badge: "POPULAR", prizes: [
-      { id: "astro", name: "Astro Bear", icon: "🐻", weight: .56 }, { id: "moon", name: "Moon Bunny", icon: "🐰", weight: .44 }, { id: "alien", name: "Lil Alien", icon: "👽", weight: .38 }, { id: "rocket", name: "Rocket Pal", icon: "🚀", weight: .62 }
-    ]},
-    { id: "sweet", name: "SWEET SCOOP", difficulty: "EASY GRIP", cost: 20, accent: "#ff7db8", bg: "#4c153d", badge: "EASY WIN", prizes: [
-      { id: "donut", name: "Donut Buddy", icon: "🍩", weight: .32 }, { id: "cupcake", name: "Cupcake Cutie", icon: "🧁", weight: .4 }, { id: "berry", name: "Berry Pop", icon: "🍓", weight: .3 }, { id: "candy", name: "Candy Star", icon: "🍬", weight: .28 }
-    ]},
-    { id: "monster", name: "MONSTER DROP", difficulty: "TOUGH GRIP", cost: 30, accent: "#a8ef3e", bg: "#273f18", badge: "2X TICKETS", prizes: [
-      { id: "dragon", name: "Pocket Dragon", icon: "🐲", weight: .74 }, { id: "dino", name: "Neon Dino", icon: "🦖", weight: .68 }, { id: "octo", name: "Grumpy Octo", icon: "🐙", weight: .58 }, { id: "ghost", name: "Glow Ghost", icon: "👻", weight: .47 }
-    ]}
+    { id:"cosmic", name:"COSMIC CLAW", difficulty:"MEDIUM GRIP", cost:25, grip:.76, accent:"#24e0d0", bg:"#142b58", badge:"POPULAR", prizes:[
+      {id:"astro",name:"Astro Bear",icon:"🐻",weight:.56},{id:"moon",name:"Moon Bunny",icon:"🐰",weight:.44},{id:"alien",name:"Lil Alien",icon:"👽",weight:.38},{id:"rocket",name:"Rocket Pal",icon:"🚀",weight:.62}]},
+    { id:"sweet", name:"SWEET SCOOP", difficulty:"EASY GRIP", cost:20, grip:.82, accent:"#ff7db8", bg:"#4c153d", badge:"EASY WIN", prizes:[
+      {id:"donut",name:"Donut Buddy",icon:"🍩",weight:.32},{id:"cupcake",name:"Cupcake Cutie",icon:"🧁",weight:.40},{id:"berry",name:"Berry Pop",icon:"🍓",weight:.30},{id:"candy",name:"Candy Star",icon:"🍬",weight:.28}]},
+    { id:"monster", name:"MONSTER DROP", difficulty:"HEAVY PRIZES", cost:30, grip:.72, accent:"#a8ef3e", bg:"#273f18", badge:"2X TICKETS", prizes:[
+      {id:"dragon",name:"Pocket Dragon",icon:"🐲",weight:.74},{id:"dino",name:"Neon Dino",icon:"🦖",weight:.68},{id:"octo",name:"Grumpy Octo",icon:"🐙",weight:.58},{id:"ghost",name:"Glow Ghost",icon:"👻",weight:.47}]},
+    { id:"ocean", name:"DEEP SEA GRAB", difficulty:"BOUNCY PRIZES", cost:35, grip:.78, unlockPrice:320, accent:"#2aa8ff", bg:"#07375b", badge:"SHOP UNLOCK", prizes:[
+      {id:"whale",name:"Mini Whale",icon:"🐳",weight:.53},{id:"puffer",name:"Puffer Pal",icon:"🐡",weight:.46},{id:"crab",name:"Crab Champ",icon:"🦀",weight:.61},{id:"pearl",name:"Pearl Shell",icon:"🐚",weight:.36}]},
+    { id:"retro", name:"GOLD RUSH 84", difficulty:"EXPERT GRIP", cost:40, grip:.70, unlockPrice:500, accent:"#ffd733", bg:"#4d3107", badge:"SHOP UNLOCK", prizes:[
+      {id:"crown",name:"Pixel Crown",icon:"👑",weight:.66},{id:"robot",name:"Retro Bot",icon:"🤖",weight:.58},{id:"gem",name:"Lucky Gem",icon:"💎",weight:.48},{id:"trophy",name:"Gold Trophy",icon:"🏆",weight:.72}]}
   ];
 
+  const cosmetics = [
+    {id:"chrome",name:"Classic Chrome",price:0,color:"#d5cede",glow:"transparent",mark:"⌄",description:"The original polished arcade claw."},
+    {id:"pink",name:"Hot Pink Grip",price:140,color:"#ff3d91",glow:"#ff3d91",mark:"⌄",description:"Pink enamel with a soft neon edge glow."},
+    {id:"plasma",name:"Plasma Talons",price:220,color:"#24e0d0",glow:"#24e0d0",mark:"ϟ",description:"Electric cyan arms and a plasma badge."},
+    {id:"gold",name:"Gold Standard",price:360,color:"#ffd733",glow:"#ffd733",mark:"★",description:"A trophy-grade finish for serious collectors."}
+  ];
+
+  const stored = JSON.parse(localStorage.getItem("prizeRushProfile") || "{}");
   const state = {
-    machine: machines[0], clawX: .55, clawY: .06, velocity: 0, swinging: 0,
-    phase: "ready", held: null, plays: 3, tickets: 250,
-    wins: JSON.parse(localStorage.getItem("prizeRushWins") || "[]"),
-    tried: new Set(JSON.parse(localStorage.getItem("prizeRushTried") || "[]")),
-    challenges: JSON.parse(localStorage.getItem("prizeRushChallenges") || "{}"),
-    sound: true
+    machine:machines[0], clawX:.55, clawY:.06, clawV:0, swinging:0, phase:"ready", held:null,
+    plays:3, tickets:Number.isFinite(stored.tickets)?stored.tickets:250,
+    wins:stored.wins || JSON.parse(localStorage.getItem("prizeRushWins") || "[]"),
+    tried:new Set(stored.tried || JSON.parse(localStorage.getItem("prizeRushTried") || "[]")),
+    unlocked:new Set(stored.unlocked || ["cosmic","sweet","monster"]),
+    ownedCosmetics:new Set(stored.ownedCosmetics || ["chrome"]), cosmetic:stored.cosmetic || "chrome",
+    challengeProgress:stored.challengeProgress || {}, completed:new Set(stored.completed || []),
+    sound:true, shopTab:"machines", gripWidth:.050, pile:[]
   };
 
-  const canvas = document.getElementById("clawCanvas");
-  const ctx = canvas.getContext("2d");
-  const dropBtn = document.getElementById("dropBtn");
-  const leftBtn = document.getElementById("leftBtn");
-  const rightBtn = document.getElementById("rightBtn");
-  const toast = document.getElementById("resultToast");
-  let last = performance.now();
-  let activeDirection = 0;
+  const challengeRules = {
+    play3:{goal:3,reward:60}, win2:{goal:2,reward:130}, machines3:{goal:3,reward:100}, precision:{goal:1,reward:160}
+  };
+  const canvas=document.getElementById("clawCanvas"), ctx=canvas.getContext("2d");
+  const dropBtn=document.getElementById("dropBtn"), leftBtn=document.getElementById("leftBtn"), rightBtn=document.getElementById("rightBtn"), toast=document.getElementById("resultToast");
+  let last=performance.now(), activeDirection=0;
+
+  function saveProfile() {
+    localStorage.setItem("prizeRushProfile",JSON.stringify({
+      tickets:state.tickets,wins:state.wins,tried:[...state.tried],unlocked:[...state.unlocked],
+      ownedCosmetics:[...state.ownedCosmetics],cosmetic:state.cosmetic,
+      challengeProgress:state.challengeProgress,completed:[...state.completed]
+    }));
+  }
 
   function makePile() {
-    const base = state.machine.prizes;
-    state.pile = Array.from({ length: 10 }, (_, i) => {
-      const prize = base[i % base.length];
-      return { ...prize, x: .18 + ((i * .157) % .68), y: .74 + (i % 3) * .055, rot: ((i * 31) % 36 - 18) * Math.PI / 180, size: .073 + (i % 2) * .008 };
+    const base=state.machine.prizes;
+    state.pile=Array.from({length:12},(_,i)=>{
+      const prize=base[i%base.length], row=Math.floor(i/6), col=i%6;
+      return {...prize,x:.235+col*.125+(row%2)*.025,y:.785-row*.095,r:.043+((i+1)%3)*.004,vx:0,vy:0,rot:(i%4-.5)*.12,av:0,mass:.65+prize.weight};
     });
   }
 
-  function roundedRect(x, y, w, h, r) {
-    ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill();
+  function roundedRect(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();}
+  function drawBackground(w,h){
+    const g=ctx.createLinearGradient(0,0,0,h);g.addColorStop(0,state.machine.bg);g.addColorStop(1,"#100720");ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+    ctx.globalAlpha=.18;ctx.strokeStyle=state.machine.accent;ctx.lineWidth=1;
+    for(let x=0;x<w;x+=75){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+    for(let y=0;y<h;y+=75){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+    ctx.globalAlpha=1;ctx.fillStyle="#150b29";ctx.fillRect(0,h*.84,w,h*.16);ctx.fillStyle=state.machine.accent+"35";ctx.fillRect(0,h*.835,w,3);
   }
 
-  function drawBackground(w, h) {
-    const g = ctx.createLinearGradient(0,0,0,h); g.addColorStop(0, state.machine.bg); g.addColorStop(1,"#100720");
-    ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
-    ctx.globalAlpha = .18; ctx.strokeStyle = state.machine.accent; ctx.lineWidth = 1;
-    for (let x=0; x<w; x+=75) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
-    for (let y=0; y<h; y+=75) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = "#150b29"; ctx.fillRect(0,h*.84,w,h*.16);
-    ctx.fillStyle = state.machine.accent + "35"; ctx.fillRect(0,h*.835,w,3);
+  function drawPrize(p,w,h){
+    const x=p.x*w,y=p.y*h,s=p.r*w*1.9;ctx.save();ctx.translate(x,y);ctx.rotate(p.rot||0);
+    ctx.shadowColor="rgba(0,0,0,.55)";ctx.shadowBlur=14;ctx.shadowOffsetY=8;ctx.fillStyle="rgba(255,255,255,.12)";ctx.beginPath();ctx.arc(0,0,p.r*w,0,Math.PI*2);ctx.fill();
+    ctx.shadowColor="transparent";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font=`${s}px Apple Color Emoji, Segoe UI Emoji, sans-serif`;ctx.fillText(p.icon,0,1);ctx.restore();
   }
 
-  function drawPrize(prize, w, h) {
-    const x=prize.x*w, y=prize.y*h, s=prize.size*w;
-    ctx.save(); ctx.translate(x,y); ctx.rotate(prize.rot || 0);
-    ctx.shadowColor = "rgba(0,0,0,.55)"; ctx.shadowBlur = 15; ctx.shadowOffsetY = 9;
-    ctx.fillStyle = "rgba(255,255,255,.13)"; ctx.beginPath(); ctx.ellipse(0, s*.2, s*.55, s*.47, 0, 0, Math.PI*2); ctx.fill();
-    ctx.shadowColor = "transparent"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.font = `${s}px Apple Color Emoji, Segoe UI Emoji, sans-serif`; ctx.fillText(prize.icon,0,0);
-    ctx.restore();
+  function clawPosition(time=performance.now()) { return {x:state.clawX+Math.sin(time/110)*state.swinging*.012,y:state.clawY}; }
+  function cosmetic(){return cosmetics.find(c=>c.id===state.cosmetic)||cosmetics[0];}
+  function drawClaw(w,h,time){
+    const pos=clawPosition(time),x=pos.x*w,y=pos.y*h,skin=cosmetic(),open=state.gripWidth*w;
+    ctx.save();ctx.shadowColor=skin.glow;ctx.shadowBlur=skin.glow==="transparent"?0:14;
+    ctx.strokeStyle=skin.color;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,y);ctx.stroke();
+    ctx.fillStyle="#665d79";ctx.fillRect(x-25,y-7,50,21);ctx.fillStyle=skin.color;roundedRect(x-18,y-12,36,17,6);
+    ctx.fillStyle="#160b2c";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font="bold 12px sans-serif";ctx.fillText(skin.mark,x,y-3);
+    ctx.strokeStyle=skin.color;ctx.lineWidth=6;ctx.lineCap="round";
+    ctx.beginPath();ctx.moveTo(x-10,y+7);ctx.quadraticCurveTo(x-open,y+34,x-open,y+62);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x+10,y+7);ctx.quadraticCurveTo(x+open,y+34,x+open,y+62);ctx.stroke();ctx.restore();
+    if(state.held) drawPrize(state.held,w,h);
   }
 
-  function drawClaw(w,h, time) {
-    const sway = Math.sin(time/110) * state.swinging * 10;
-    const x=state.clawX*w+sway, top=0, y=state.clawY*h;
-    ctx.strokeStyle="#c5bfd4"; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(x,top); ctx.lineTo(x,y); ctx.stroke();
-    ctx.fillStyle="#6e6682"; ctx.fillRect(x-24,y-7,48,20);
-    ctx.fillStyle="#a9a1ba"; roundedRect(x-17,y-12,34,17,6);
-    const open = state.phase === "descending" || state.phase === "ready" ? 35 : 16;
-    ctx.strokeStyle="#d5cede"; ctx.lineWidth=5; ctx.lineCap="round";
-    ctx.beginPath(); ctx.moveTo(x-10,y+7); ctx.quadraticCurveTo(x-open,y+32,x-open-4,y+60); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x+10,y+7); ctx.quadraticCurveTo(x+open,y+32,x+open+4,y+60); ctx.stroke();
-    ctx.strokeStyle="#857c98"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x,y+10); ctx.lineTo(x-open,y+48); ctx.moveTo(x,y+10); ctx.lineTo(x+open,y+48); ctx.stroke();
-    if (state.held) {
-      const held = { ...state.held, x:x/w, y:(y+75)/h, rot: Math.sin(time/100)*.15, size:.073 };
-      drawPrize(held,w,h);
+  function resolvePrizePhysics(dt,time){
+    const steps=3,step=Math.min(dt/steps,.018),floor=.835,left=.075,right=.94;
+    for(let n=0;n<steps;n++){
+      for(const p of state.pile){
+        p.vy+=.58*step;p.x+=p.vx*step;p.y+=p.vy*step;p.rot+=p.av*step;p.vx*=.997;p.av*=.985;
+        if(p.x-p.r<left){p.x=left+p.r;p.vx=Math.abs(p.vx)*.35;p.av-=p.vy*.15;}
+        if(p.x+p.r>right){p.x=right-p.r;p.vx=-Math.abs(p.vx)*.35;p.av+=p.vy*.15;}
+        if(p.y+p.r>floor){p.y=floor-p.r;p.vy=-Math.abs(p.vy)*.18;p.vx*=.87;p.av+=p.vx*2.2;if(Math.abs(p.vy)<.008)p.vy=0;}
+      }
+      for(let i=0;i<state.pile.length;i++)for(let j=i+1;j<state.pile.length;j++){
+        const a=state.pile[i],b=state.pile[j],dx=b.x-a.x,dy=b.y-a.y,min=a.r+b.r,d=Math.hypot(dx,dy)||.001;
+        if(d<min){const nx=dx/d,ny=dy/d,overlap=min-d,total=a.mass+b.mass;a.x-=nx*overlap*(b.mass/total);a.y-=ny*overlap*(b.mass/total);b.x+=nx*overlap*(a.mass/total);b.y+=ny*overlap*(a.mass/total);
+          const rvx=b.vx-a.vx,rvy=b.vy-a.vy,along=rvx*nx+rvy*ny;if(along<0){const impulse=-(1.22)*along/(1/a.mass+1/b.mass);a.vx-=impulse*nx/a.mass;a.vy-=impulse*ny/a.mass;b.vx+=impulse*nx/b.mass;b.vy+=impulse*ny/b.mass;a.av-=along*.7;b.av+=along*.7;}}
+      }
+      if(state.phase==="descending"||state.phase==="grabbing"){
+        const cp=clawPosition(time),tipY=cp.y+.102;
+        for(const p of state.pile)for(const side of [-1,1]){
+          const tx=cp.x+side*state.gripWidth,dx=p.x-tx,dy=p.y-tipY,d=Math.hypot(dx,dy)||.001,min=p.r+.012;
+          if(d<min){const nx=dx/d,ny=dy/d,overlap=min-d;p.x+=nx*overlap;p.y+=ny*overlap;p.vx+=nx*.035;p.vy+=ny*.025;p.av+=side*.45;}
+        }
+      }
     }
   }
 
-  function render(time) {
-    const dt = Math.min((time-last)/16.67, 2); last=time;
-    const w=canvas.width, h=canvas.height;
-    if (activeDirection && state.phase === "ready") {
-      state.velocity += activeDirection * .00055 * dt;
-      state.velocity *= .9; state.clawX += state.velocity * dt;
-      state.clawX = Math.max(.18, Math.min(.86, state.clawX)); state.swinging = Math.min(1, state.swinging + .045*dt);
-    } else { state.velocity *= .88; state.swinging *= .975; }
-    drawBackground(w,h); state.pile.forEach(p => drawPrize(p,w,h)); drawClaw(w,h,time);
-    requestAnimationFrame(render);
+  function render(time){
+    const seconds=Math.min((time-last)/1000,.035);last=time;
+    if(activeDirection&&state.phase==="ready"){state.clawV+=activeDirection*.65*seconds;state.clawV*=.90;state.clawX+=state.clawV*seconds;state.clawX=Math.max(.18,Math.min(.88,state.clawX));state.swinging=Math.min(1,state.swinging+seconds*3.2);}else{state.clawV*=.86;state.swinging*=Math.pow(.45,seconds);}
+    if(state.held){const cp=clawPosition(time);state.held.x=cp.x;state.held.y=cp.y+.126;state.held.rot=Math.sin(time/120)*.12;state.held.vx=0;state.held.vy=0;}
+    resolvePrizePhysics(seconds,time);drawBackground(canvas.width,canvas.height);state.pile.forEach(p=>drawPrize(p,canvas.width,canvas.height));drawClaw(canvas.width,canvas.height,time);requestAnimationFrame(render);
   }
 
-  function beep(freq=440, duration=.07) {
-    if (!state.sound) return;
-    try { const a=new AudioContext(); const o=a.createOscillator(); const g=a.createGain(); o.frequency.value=freq; o.type="square"; g.gain.setValueAtTime(.025,a.currentTime); g.gain.exponentialRampToValueAtTime(.001,a.currentTime+duration); o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime+duration); } catch (_) {}
+  function beep(freq=440,duration=.07){if(!state.sound)return;try{const a=new AudioContext(),o=a.createOscillator(),g=a.createGain();o.frequency.value=freq;o.type="square";g.gain.setValueAtTime(.025,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+duration);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+duration);}catch(_) {}}
+  function move(dir){if(state.phase!=="ready")return;activeDirection=dir;state.clawV+=dir*.12;state.swinging=1;beep(dir<0?320:390,.04);}
+  function stopMove(){activeDirection=0;}
+
+  function findPhysicalGrip(){
+    const cp=clawPosition(),tipY=cp.y+.105;
+    return state.pile.map((p,index)=>({p,index,dx:Math.abs(p.x-cp.x),dy:Math.abs(p.y-tipY)}))
+      .filter(c=>c.dx<Math.max(.031,c.p.r*.72)&&c.dy<c.p.r*.82)
+      .sort((a,b)=>(a.dx+a.dy*.35)-(b.dx+b.dy*.35))[0]||null;
   }
 
-  function move(dir) {
-    if (state.phase !== "ready") return;
-    activeDirection = dir; state.velocity += dir*.008; state.swinging = 1; beep(dir<0?320:390,.04);
-  }
-  function stopMove() { activeDirection = 0; }
-
-  async function drop() {
-    if (state.phase !== "ready") return;
-    if (state.plays <= 0 && state.tickets < state.machine.cost) { showToast("OUT OF TICKETS", "Complete challenges to earn more"); return; }
-    if (state.plays > 0) state.plays--; else state.tickets -= state.machine.cost;
-    state.tried.add(state.machine.id); localStorage.setItem("prizeRushTried", JSON.stringify([...state.tried]));
-    completeChallenge("play", 40);
-    if (state.tried.size >= 2) completeChallenge("machines", 75);
-    updateUI(); dropBtn.disabled=true; state.phase="descending"; document.getElementById("machineStatus").textContent="CLAW IN MOTION"; beep(220,.12);
-    const targetY=.67; await tween(1050, p => state.clawY=.06+(targetY-.06)*ease(p));
-    const candidates=state.pile.map((p,i)=>({p,i,d:Math.abs(p.x-state.clawX)})).sort((a,b)=>a.d-b.d);
-    const closest=candidates[0]; const settledPenalty=Math.min(state.swinging*.16,.16); const alignment=Math.max(0, 1-closest.d/.16);
-    const grip = state.machine.id==="sweet"?.78:state.machine.id==="monster"?.54:.66;
-    const chance=Math.max(.08, alignment*grip-closest.p.weight*.22-settledPenalty);
-    state.phase="grabbing"; await wait(420);
-    if (Math.random()<chance && closest.d<.13) { state.held=closest.p; state.pile.splice(closest.i,1); beep(660,.13); }
-    state.phase="rising"; await tween(900,p=>state.clawY=targetY-(targetY-.06)*ease(p));
-    if (state.held) {
-      state.phase="returning"; const start=state.clawX; await tween(850,p=>state.clawX=start+(.10-start)*ease(p));
-      const won=state.held; state.held=null; state.wins.push(won.id); localStorage.setItem("prizeRushWins",JSON.stringify(state.wins));
-      state.tickets += state.machine.id==="monster"?50:20; completeChallenge("win",100); renderCollection();
-      showToast(`YOU GOT ${won.name.toUpperCase()}!`, state.machine.id==="monster"?"+50 bonus tickets · prize collected":"+20 tickets · prize added to your shelf");
-      beep(880,.2); setTimeout(()=>beep(1100,.25),160);
-    } else { showToast("SO CLOSE!", "The claw slipped — settle the sway and try again"); beep(145,.22); }
-    if (state.pile.length<6) makePile();
-    state.phase="ready"; state.clawY=.06; state.clawX=Math.max(.18,state.clawX); dropBtn.disabled=false; document.getElementById("machineStatus").textContent="MACHINE READY"; updateUI();
+  async function drop(){
+    if(state.phase!=="ready")return;
+    if(state.plays<=0&&state.tickets<state.machine.cost){showToast("OUT OF TICKETS","Complete challenges or save for more plays");return;}
+    if(state.plays>0)state.plays--;else state.tickets-=state.machine.cost;
+    state.tried.add(state.machine.id);advanceChallenge("play3",1);setChallenge("machines3",state.tried.size);saveProfile();updateUI();
+    dropBtn.disabled=true;state.phase="descending";document.getElementById("machineStatus").textContent="PHYSICS ACTIVE";beep(220,.12);
+    const startSway=state.swinging,targetY=.655;state.gripWidth=.052;
+    await tween(1050,p=>state.clawY=.06+(targetY-.06)*ease(p));
+    state.phase="grabbing";await tween(440,p=>state.gripWidth=.052-(.032*ease(p)));
+    const contact=findPhysicalGrip();
+    if(contact){
+      const forceRequired=contact.p.weight+state.swinging*.18;
+      if(forceRequired<=state.machine.grip){state.held=contact.p;state.pile.splice(contact.index,1);beep(660,.13);}
+      else {contact.p.vx+=(contact.p.x-state.clawX)*.7;contact.p.vy=-.08;}
+    }
+    state.phase="rising";await tween(950,p=>state.clawY=targetY-(targetY-.06)*ease(p));
+    if(state.held){
+      state.phase="returning";const start=state.clawX;await tween(900,p=>state.clawX=start+(.10-start)*ease(p));
+      const won=state.held;state.held=null;state.wins.push(won.id);state.tickets+=state.machine.id==="monster"?50:25;advanceChallenge("win2",1);if(startSway<.18)advanceChallenge("precision",1);renderCollection();
+      showToast(`YOU GOT ${won.name.toUpperCase()}!`,state.machine.id==="monster"?"+50 tickets · real physics grab":"+25 tickets · added to your shelf");beep(880,.2);setTimeout(()=>beep(1100,.25),160);
+    }else{showToast("THE CLAW MISSED","Aim between the prize edges — every grab is geometry, not chance");beep(145,.22);}
+    if(state.pile.length<6)makePile();state.phase="ready";state.clawY=.06;state.gripWidth=.05;dropBtn.disabled=false;document.getElementById("machineStatus").textContent="MACHINE READY";saveProfile();updateUI();
   }
 
-  function tween(ms, tick) { return new Promise(resolve=>{ const start=performance.now(); function frame(now){ const p=Math.min(1,(now-start)/ms); tick(p); p<1?requestAnimationFrame(frame):resolve(); } requestAnimationFrame(frame); }); }
-  const wait = ms => new Promise(r=>setTimeout(r,ms));
-  const ease = p => p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
-  function showToast(title, sub) { toast.innerHTML=`${title}<small>${sub}</small>`; toast.classList.add("show"); setTimeout(()=>toast.classList.remove("show"),2600); }
+  function tween(ms,tick){return new Promise(resolve=>{const start=performance.now();function frame(now){const p=Math.min(1,(now-start)/ms);tick(p);p<1?requestAnimationFrame(frame):resolve();}requestAnimationFrame(frame);});}
+  const ease=p=>p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+  function showToast(title,sub){toast.innerHTML=`${title}<small>${sub}</small>`;toast.classList.add("show");setTimeout(()=>toast.classList.remove("show"),2800);}
 
-  function completeChallenge(id,reward) {
-    if (state.challenges[id]) return;
-    state.challenges[id]=true; state.tickets+=reward; localStorage.setItem("prizeRushChallenges",JSON.stringify(state.challenges)); updateChallenges();
+  function setChallenge(id,value){state.challengeProgress[id]=Math.max(state.challengeProgress[id]||0,Math.min(value,challengeRules[id].goal));finishChallenge(id);updateChallenges();}
+  function advanceChallenge(id,amount){state.challengeProgress[id]=Math.min((state.challengeProgress[id]||0)+amount,challengeRules[id].goal);finishChallenge(id);updateChallenges();}
+  function finishChallenge(id){const rule=challengeRules[id];if((state.challengeProgress[id]||0)>=rule.goal&&!state.completed.has(id)){state.completed.add(id);state.tickets+=rule.reward;showToast("CHALLENGE CLEARED!",`+${rule.reward} tickets added to your balance`);beep(760,.15);saveProfile();}}
+  function updateChallenges(){
+    Object.entries(challengeRules).forEach(([id,rule])=>{const el=document.querySelector(`[data-challenge="${id}"]`);if(!el)return;const value=Math.min(state.challengeProgress[id]||0,rule.goal);el.classList.toggle("complete",state.completed.has(id));el.querySelector(".progress i").style.width=`${value/rule.goal*100}%`;el.querySelector(".challenge-count").textContent=`${value}/${rule.goal}`;});
   }
-  function updateChallenges() {
-    Object.keys(state.challenges).forEach(id=>document.querySelector(`[data-challenge="${id}"]`)?.classList.add("complete"));
-  }
-  function updateUI() {
-    document.getElementById("ticketCount").textContent=state.tickets;
-    document.getElementById("playsLeft").textContent=state.plays;
-  }
+  function updateUI(){document.getElementById("ticketCount").textContent=state.tickets;document.getElementById("shopTicketCount").textContent=state.tickets;document.getElementById("playsLeft").textContent=state.plays;}
 
-  function selectMachine(id) {
-    if (state.phase!=="ready") return;
-    state.machine=machines.find(m=>m.id===id); makePile(); state.clawX=.55; state.swinging=0;
-    document.getElementById("machineName").textContent=state.machine.name;
-    document.getElementById("marqueeName").textContent=state.machine.name;
-    document.getElementById("machineDifficulty").textContent=state.machine.difficulty;
-    document.querySelector(".cost").innerHTML=`<span>◆</span> ${state.machine.cost} / PLAY`;
-    document.querySelectorAll(".game-tile").forEach(el=>el.classList.toggle("selected",el.dataset.id===id));
-    document.getElementById("machine").scrollIntoView({behavior:"smooth",block:"start"}); beep(520,.08);
+  function selectMachine(id){
+    if(state.phase!=="ready")return;if(!state.unlocked.has(id)){document.getElementById("shop").scrollIntoView({behavior:"smooth"});showToast("MACHINE LOCKED","Unlock this cabinet at the Prize Counter");return;}
+    state.machine=machines.find(m=>m.id===id);makePile();state.clawX=.55;state.swinging=0;
+    document.getElementById("machineName").textContent=state.machine.name;document.getElementById("marqueeName").textContent=state.machine.name;document.getElementById("machineDifficulty").textContent=state.machine.difficulty;document.querySelector(".cost").innerHTML=`<span>◆</span> ${state.machine.cost} / PLAY`;
+    document.querySelectorAll(".game-tile").forEach(el=>el.classList.toggle("selected",el.dataset.id===id));document.getElementById("machine").scrollIntoView({behavior:"smooth",block:"start"});beep(520,.08);
   }
 
-  function renderGames() {
-    document.getElementById("gameGrid").innerHTML=machines.map(m=>`
-      <button class="game-tile ${m.id===state.machine.id?"selected":""}" data-id="${m.id}" style="--accent:${m.accent};--tile-bg:${m.bg}" aria-label="Play ${m.name}">
-        <div class="game-scene"><div class="mini-claw"></div><div class="prize-pile">${m.prizes.map(p=>`<span>${p.icon}</span>`).join("")}</div></div>
-        <div class="tile-info"><div><b>${m.name}</b><small>${m.difficulty} · ${m.cost} TICKETS</small></div><span class="tile-badge">${m.badge}</span></div>
-      </button>`).join("");
+  function renderGames(){
+    document.getElementById("gameGrid").innerHTML=machines.map(m=>{const locked=!state.unlocked.has(m.id);return `<button class="game-tile ${m.id===state.machine.id?"selected":""} ${locked?"locked":""}" data-id="${m.id}" style="--accent:${m.accent};--tile-bg:${m.bg}" aria-label="${locked?"Locked machine":"Play"} ${m.name}"><div class="game-scene"><div class="mini-claw"></div><div class="prize-pile">${m.prizes.map(p=>`<span>${p.icon}</span>`).join("")}</div></div><div class="tile-info"><div><b>${m.name}</b><small>${m.difficulty} · ${m.cost} TICKETS</small></div><span class="tile-badge">${locked?`${m.unlockPrice} ◆`:m.badge}</span></div></button>`;}).join("");
     document.querySelectorAll(".game-tile").forEach(el=>el.addEventListener("click",()=>selectMachine(el.dataset.id)));
   }
 
-  function renderCollection() {
-    const all=machines.flatMap(m=>m.prizes);
-    document.getElementById("collectionGrid").innerHTML=all.map(p=>`<div class="collection-item ${state.wins.includes(p.id)?"won":""}" title="${p.name}"><span>${state.wins.includes(p.id)?p.icon:"?"}</span><small>${state.wins.includes(p.id)?p.name:"Locked"}</small></div>`).join("");
+  function renderCollection(){const all=machines.flatMap(m=>m.prizes);document.getElementById("collectionGrid").innerHTML=all.map(p=>`<div class="collection-item ${state.wins.includes(p.id)?"won":""}" title="${p.name}"><span>${state.wins.includes(p.id)?p.icon:"?"}</span><small>${state.wins.includes(p.id)?p.name:"Locked"}</small></div>`).join("");}
+
+  function renderShop(){
+    const items=state.shopTab==="machines"?machines.filter(m=>m.unlockPrice):cosmetics;
+    document.getElementById("shopGrid").innerHTML=items.map(item=>{
+      const isMachine="unlockPrice" in item,owned=isMachine?state.unlocked.has(item.id):state.ownedCosmetics.has(item.id),equipped=!isMachine&&state.cosmetic===item.id,price=isMachine?item.unlockPrice:item.price;
+      const buttonLabel=isMachine?(owned?"UNLOCKED":`UNLOCK · ${price} ◆`):(equipped?"EQUIPPED":owned?"EQUIP":price===0?"OWNED":`BUY · ${price} ◆`);
+      return `<article class="shop-card ${equipped?"equipped":""}" style="--item-accent:${item.accent||item.color}"><div class="shop-preview ${isMachine?"":"claw-preview"}">${isMachine?item.prizes[0].icon:item.mark}</div><div class="shop-info"><small>${isMachine?"NEW CABINET":"CLAW COSMETIC"}</small><h3>${item.name}</h3><p>${isMachine?`${item.difficulty}. Includes 4 new collectible prizes.`:item.description}</p><button class="buy-btn" data-shop-id="${item.id}" ${owned&&isMachine||equipped?"disabled":""}>${buttonLabel}</button></div></article>`;
+    }).join("");
+    document.querySelectorAll(".buy-btn:not(:disabled)").forEach(btn=>btn.addEventListener("click",()=>buyOrEquip(btn.dataset.shopId)));
   }
 
-  [[leftBtn,-1],[rightBtn,1]].forEach(([button,dir])=>{
-    button.addEventListener("pointerdown",()=>move(dir)); button.addEventListener("pointerup",stopMove); button.addEventListener("pointerleave",stopMove);
-  });
-  window.addEventListener("pointerup",stopMove);
-  window.addEventListener("keydown",e=>{ if(e.key==="ArrowLeft") move(-1); if(e.key==="ArrowRight") move(1); if((e.key===" "||e.key==="ArrowDown")&&!e.repeat){e.preventDefault();drop();} });
-  window.addEventListener("keyup",e=>{if(e.key==="ArrowLeft"||e.key==="ArrowRight")stopMove();});
-  dropBtn.addEventListener("click",drop);
-  document.getElementById("soundToggle").addEventListener("click",e=>{state.sound=!state.sound;e.currentTarget.textContent=state.sound?"♪":"×";e.currentTarget.setAttribute("aria-label",state.sound?"Mute arcade sounds":"Turn on arcade sounds");});
+  function buyOrEquip(id){
+    const machine=machines.find(m=>m.id===id),skin=cosmetics.find(c=>c.id===id),item=machine||skin,price=machine?machine.unlockPrice:skin.price,owned=machine?state.unlocked.has(id):state.ownedCosmetics.has(id);
+    if(!owned){if(state.tickets<price){showToast("NOT ENOUGH TICKETS",`You need ${price-state.tickets} more tickets`);return;}state.tickets-=price;if(machine)state.unlocked.add(id);else state.ownedCosmetics.add(id);showToast(machine?"NEW MACHINE UNLOCKED!":"COSMETIC PURCHASED!",item.name);}
+    if(skin){state.cosmetic=id;showToast("CLAW UPDATED",`${skin.name} is now equipped`);}
+    saveProfile();updateUI();renderGames();renderShop();beep(900,.15);
+  }
 
-  makePile(); renderGames(); renderCollection(); updateChallenges(); updateUI(); requestAnimationFrame(render);
+  [[leftBtn,-1],[rightBtn,1]].forEach(([button,dir])=>{button.addEventListener("pointerdown",()=>move(dir));button.addEventListener("pointerup",stopMove);button.addEventListener("pointerleave",stopMove);});
+  window.addEventListener("pointerup",stopMove);window.addEventListener("keydown",e=>{if(e.key==="ArrowLeft")move(-1);if(e.key==="ArrowRight")move(1);if((e.key===" "||e.key==="ArrowDown")&&!e.repeat){e.preventDefault();drop();}});window.addEventListener("keyup",e=>{if(e.key==="ArrowLeft"||e.key==="ArrowRight")stopMove();});
+  dropBtn.addEventListener("click",drop);document.getElementById("soundToggle").addEventListener("click",e=>{state.sound=!state.sound;e.currentTarget.textContent=state.sound?"♪":"×";e.currentTarget.setAttribute("aria-label",state.sound?"Mute arcade sounds":"Turn on arcade sounds");});
+  document.querySelectorAll("[data-shop-tab]").forEach(btn=>btn.addEventListener("click",()=>{state.shopTab=btn.dataset.shopTab;document.querySelectorAll("[data-shop-tab]").forEach(b=>b.classList.toggle("active",b===btn));renderShop();}));
+
+  makePile();renderGames();renderShop();renderCollection();updateChallenges();updateUI();requestAnimationFrame(render);
 })();

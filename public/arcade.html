@@ -19,6 +19,7 @@
       </a>
       <nav aria-label="Primary navigation">
         <a class="active" href="#games">Arcade</a>
+        <a href="#shop">Shop</a>
         <a href="#collection">My prizes</a>
         <a href="#challenges">Challenges</a>
       </nav>
@@ -83,27 +84,32 @@
             <span>RESET 08:42:16</span>
           </div>
           <div class="challenge-list">
-            <article class="challenge" data-challenge="play">
+            <article class="challenge" data-challenge="play3" data-goal="3">
               <div class="challenge-icon">🎯</div>
-              <div><b>Take your shot</b><p>Play any claw machine once</p><div class="progress"><i></i></div></div>
-              <span class="reward">+40 ◆</span>
+              <div><b>Warm up round</b><p>Play 3 claw machine rounds <span class="challenge-count">0/3</span></p><div class="progress"><i></i></div></div>
+              <span class="reward">+60 ◆</span>
             </article>
-            <article class="challenge" data-challenge="win">
+            <article class="challenge" data-challenge="win2" data-goal="2">
               <div class="challenge-icon">🏆</div>
-              <div><b>First grab</b><p>Win any prize today</p><div class="progress"><i></i></div></div>
+              <div><b>Double clutch</b><p>Win 2 prizes today <span class="challenge-count">0/2</span></p><div class="progress"><i></i></div></div>
+              <span class="reward">+130 ◆</span>
+            </article>
+            <article class="challenge" data-challenge="machines3" data-goal="3">
+              <div class="challenge-icon">🕹️</div>
+              <div><b>Arcade tour</b><p>Try 3 different machines <span class="challenge-count">0/3</span></p><div class="progress"><i></i></div></div>
               <span class="reward">+100 ◆</span>
             </article>
-            <article class="challenge" data-challenge="machines">
-              <div class="challenge-icon">🕹️</div>
-              <div><b>Machine hopper</b><p>Try 2 different machines</p><div class="progress"><i></i></div></div>
-              <span class="reward">+75 ◆</span>
+            <article class="challenge" data-challenge="precision" data-goal="1">
+              <div class="challenge-icon">💎</div>
+              <div><b>Steady hands</b><p>Win with almost no claw sway <span class="challenge-count">0/1</span></p><div class="progress"><i></i></div></div>
+              <span class="reward">+160 ◆</span>
             </article>
           </div>
           <div class="streak-card">
             <div><small>DAILY STREAK</small><strong><span id="streakCount">3</span> DAYS</strong></div>
             <div class="streak-days"><span class="done">M</span><span class="done">T</span><span class="done">W</span><span>T</span><span>F</span></div>
           </div>
-          <p class="tip"><b>PRO TIP</b> The claw sways after moving. Let it settle for a more accurate drop.</p>
+          <p class="tip"><b>PRO TIP</b> Prizes now collide, roll, and push one another. Use the claw to separate a crowded target before grabbing it.</p>
         </aside>
       </section>
 
@@ -113,6 +119,22 @@
           <p>Every machine has different prizes, grip strength, and physics.</p>
         </div>
         <div class="game-grid" id="gameGrid"></div>
+      </section>
+
+      <section class="shop-section" id="shop" aria-labelledby="shop-title">
+        <div class="shop-banner">
+          <div>
+            <span class="kicker">SPEND YOUR WINNINGS</span>
+            <h2 id="shop-title">PRIZE COUNTER</h2>
+            <p>Unlock new cabinets and customize the claw you take into every machine.</p>
+          </div>
+          <div class="shop-balance"><small>AVAILABLE</small><strong><span id="shopTicketCount">250</span> ◆</strong></div>
+        </div>
+        <div class="shop-tabs" role="tablist" aria-label="Shop categories">
+          <button class="active" data-shop-tab="machines" role="tab">NEW MACHINES</button>
+          <button data-shop-tab="cosmetics" role="tab">CLAW COSMETICS</button>
+        </div>
+        <div class="shop-grid" id="shopGrid"></div>
       </section>
 
       <section class="collection-section" id="collection" aria-labelledby="collection-title">
