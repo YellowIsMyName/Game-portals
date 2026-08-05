@@ -149,7 +149,7 @@
     if(state.plays>0)state.plays--;else state.tickets-=state.machine.cost;
     state.tried.add(state.machine.id);advanceChallenge("play3",1);setChallenge("machines3",state.tried.size);saveProfile();updateUI();
     dropBtn.disabled=true;state.phase="descending";document.getElementById("machineStatus").textContent="PHYSICS ACTIVE";beep(220,.12);
-    const startSway=state.swinging,targetY=.660;state.gripWidth=.068;state.slipped=false;
+    const startSway=state.swinging,targetY=.705;state.gripWidth=.068;state.slipped=false;
     await tween(1050,p=>state.clawY=.06+(targetY-.06)*ease(p));
     state.phase="grabbing";await tween(440,p=>state.gripWidth=.068-(.030*ease(p)));
     state.phase="checking";document.getElementById("machineStatus").textContent="TESTING THE GRIP...";beep(410,.08);
