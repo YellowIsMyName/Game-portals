@@ -158,7 +158,9 @@
     const contact=findPhysicalGrip();
     if(contact){
       const forceRequired=contact.p.weight+state.swinging*.06;
-      if(forceRequired<=state.machine.grip+.12){state.held=contact.p;state.pile.splice(contact.index,1);state.held.vx=state.clawV*.12;state.held.vy=.01;beep(660,.13);}
+      const baseChance=state.machine.id==="sweet"?.78:state.machine.id==="monster"?.56:state.machine.id==="retro"?.52:.68;
+      const alignment=Math.max(0,1-contact.dx/.058),grabChance=Math.max(.22,Math.min(.92,baseChance+alignment*.16-state.swinging*.10-contact.p.weight*.05));
+      if(forceRequired<=state.machine.grip+.12&&Math.random()<grabChance){state.held=contact.p;state.pile.splice(contact.index,1);state.held.vx=state.clawV*.12;state.held.vy=.01;beep(660,.13);}
       else {contact.p.vx+=(contact.p.x-state.clawX)*.7;contact.p.vy=-.08;}
     }
     state.phase="rising";await tween(1125,p=>state.clawY=targetY-(targetY-.06)*ease(p));
@@ -166,7 +168,7 @@
       state.phase="returning";const start=state.clawX;await tween(1050,p=>state.clawX=start+(.10-start)*ease(p));
       const won=state.held;state.held=null;state.wins.push(won.id);state.tickets+=state.machine.id==="monster"?50:25;advanceChallenge("win2",1);if(startSway<.18)advanceChallenge("precision",1);renderCollection();
       showToast(`YOU GOT ${won.name.toUpperCase()}!`,state.machine.id==="monster"?"+50 tickets · real physics grab":"+25 tickets · added to your shelf");beep(880,.2);setTimeout(()=>beep(1100,.25),160);
-    }else{showToast(state.slipped?"THE PRIZE SLIPPED!":"THE CLAW MISSED",state.slipped?"Move gently after contact — weight and momentum can break the grip":"Aim between the prize edges — every grab is geometry, not chance");beep(145,.22);}
+    }else{showToast(state.slipped?"THE PRIZE SLIPPED!":"THE GRIP LET GO",state.slipped?"Move gently after contact — weight and momentum can break the grip":"Good alignment improves your odds — try the grip again");beep(145,.22);}
     if(state.pile.length<6)makePile();state.phase="ready";state.clawY=.06;state.gripWidth=.065;dropBtn.disabled=false;document.getElementById("machineStatus").textContent="MACHINE READY";saveProfile();updateUI();
   }
 
