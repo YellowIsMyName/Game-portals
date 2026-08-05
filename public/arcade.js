@@ -52,7 +52,7 @@
     const base=state.machine.prizes;
     state.pile=Array.from({length:12},(_,i)=>{
       const prize=base[i%base.length], row=Math.floor(i/6), col=i%6;
-      return {...prize,x:.235+col*.125+(row%2)*.025,y:.785-row*.095,r:.043+((i+1)%3)*.004,vx:0,vy:0,rot:(i%4-.5)*.12,av:0,mass:.65+prize.weight};
+      return {...prize,x:.235+col*.125+(row%2)*.025,y:.793-row*.082,r:.035+((i+1)%3)*.003,vx:0,vy:0,rot:(i%4-.5)*.12,av:0,mass:.65+prize.weight};
     });
   }
 
