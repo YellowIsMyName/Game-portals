@@ -99,7 +99,7 @@
         if(d<min){const nx=dx/d,ny=dy/d,overlap=min-d,total=a.mass+b.mass;a.x-=nx*overlap*(b.mass/total);a.y-=ny*overlap*(b.mass/total);b.x+=nx*overlap*(a.mass/total);b.y+=ny*overlap*(a.mass/total);
           const rvx=b.vx-a.vx,rvy=b.vy-a.vy,along=rvx*nx+rvy*ny;if(along<0){const impulse=-(1.22)*along/(1/a.mass+1/b.mass);a.vx-=impulse*nx/a.mass;a.vy-=impulse*ny/a.mass;b.vx+=impulse*nx/b.mass;b.vy+=impulse*ny/b.mass;a.av-=along*.7;b.av+=along*.7;}}
       }
-      if(state.phase==="descending"||state.phase==="grabbing"){
+      if(state.phase==="descending"||state.phase==="grabbing"||state.phase==="checking"){
         const cp=clawPosition(time),tipY=cp.y+.125;
         for(const p of state.pile)for(const side of [-1,1]){
           const tx=cp.x+side*state.gripWidth,dx=p.x-tx,dy=p.y-tipY,d=Math.hypot(dx,dy)||.001,min=p.r+.012;
@@ -149,9 +149,11 @@
     if(state.plays>0)state.plays--;else state.tickets-=state.machine.cost;
     state.tried.add(state.machine.id);advanceChallenge("play3",1);setChallenge("machines3",state.tried.size);saveProfile();updateUI();
     dropBtn.disabled=true;state.phase="descending";document.getElementById("machineStatus").textContent="PHYSICS ACTIVE";beep(220,.12);
-    const startSway=state.swinging,targetY=.635;state.gripWidth=.068;state.slipped=false;
+    const startSway=state.swinging,targetY=.660;state.gripWidth=.068;state.slipped=false;
     await tween(1050,p=>state.clawY=.06+(targetY-.06)*ease(p));
     state.phase="grabbing";await tween(440,p=>state.gripWidth=.068-(.030*ease(p)));
+    state.phase="checking";document.getElementById("machineStatus").textContent="TESTING THE GRIP...";beep(410,.08);
+    await tween(900,p=>state.gripWidth=.038-Math.sin(p*Math.PI*3)*.003*(1-p));
     const contact=findPhysicalGrip();
     if(contact){
       const forceRequired=contact.p.weight+state.swinging*.18;
