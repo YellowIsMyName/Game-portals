@@ -66,9 +66,10 @@
   }
 
   function drawPrize(p,w,h){
-    const x=p.x*w,y=p.y*h,s=p.r*w*1.9;ctx.save();ctx.translate(x,y);ctx.rotate(p.rot||0);
-    ctx.shadowColor="rgba(0,0,0,.55)";ctx.shadowBlur=14;ctx.shadowOffsetY=8;ctx.fillStyle="rgba(255,255,255,.12)";ctx.beginPath();ctx.arc(0,0,p.r*w,0,Math.PI*2);ctx.fill();
-    ctx.shadowColor="transparent";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font=`${s}px Apple Color Emoji, Segoe UI Emoji, sans-serif`;ctx.fillText(p.icon,0,1);ctx.restore();
+    const x=p.x*w,y=p.y*h,s=p.r*w*2.18;ctx.save();ctx.translate(x,y);ctx.rotate(p.rot||0);
+    ctx.shadowColor=state.machine.accent;ctx.shadowBlur=18;ctx.shadowOffsetY=0;ctx.fillStyle="rgba(255,255,255,.24)";ctx.beginPath();ctx.arc(0,0,p.r*w,0,Math.PI*2);ctx.fill();
+    ctx.shadowColor="rgba(0,0,0,.6)";ctx.shadowBlur=7;ctx.shadowOffsetY=5;ctx.strokeStyle="rgba(255,255,255,.72)";ctx.lineWidth=2.5;ctx.stroke();
+    ctx.shadowColor="rgba(0,0,0,.48)";ctx.shadowBlur=8;ctx.shadowOffsetY=4;ctx.textAlign="center";ctx.textBaseline="middle";ctx.font=`${s}px Apple Color Emoji, Segoe UI Emoji, sans-serif`;ctx.fillText(p.icon,0,1);ctx.restore();
   }
 
   function clawPosition(time=performance.now()) { return {x:state.clawX+Math.sin(time/110)*state.swinging*.012,y:state.clawY}; }
@@ -80,9 +81,8 @@
     ctx.fillStyle="#665d79";ctx.fillRect(x-25,y-7,50,21);ctx.fillStyle=skin.color;roundedRect(x-18,y-12,36,17,6);
     ctx.fillStyle="#160b2c";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font="bold 12px sans-serif";ctx.fillText(skin.mark,x,y-3);
     ctx.strokeStyle=skin.color;ctx.lineWidth=8;ctx.lineCap="round";ctx.lineJoin="round";
-    ctx.beginPath();ctx.moveTo(x-12,y+7);ctx.lineTo(x-open*.62,y+38);ctx.lineTo(x-open,y+75);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(x+12,y+7);ctx.lineTo(x+open*.62,y+38);ctx.lineTo(x+open,y+75);ctx.stroke();
-    ctx.fillStyle=skin.color;ctx.beginPath();ctx.arc(x-open*.62,y+38,6,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x+open*.62,y+38,6,0,Math.PI*2);ctx.fill();ctx.restore();
+    ctx.beginPath();ctx.moveTo(x-12,y+7);ctx.bezierCurveTo(x-open*.72,y+24,x-open*1.08,y+54,x-open*.72,y+78);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x+12,y+7);ctx.bezierCurveTo(x+open*.72,y+24,x+open*1.08,y+54,x+open*.72,y+78);ctx.stroke();ctx.restore();
     if(state.held) drawPrize(state.held,w,h);
   }
 
@@ -103,7 +103,7 @@
       if(state.phase==="descending"||state.phase==="grabbing"||state.phase==="checking"){
         const cp=clawPosition(time),tipY=cp.y+.125;
         for(const p of state.pile)for(const side of [-1,1]){
-          const tx=cp.x+side*state.gripWidth,dx=p.x-tx,dy=p.y-tipY,d=Math.hypot(dx,dy)||.001,min=p.r+.012;
+          const tx=cp.x+side*state.gripWidth*.72,dx=p.x-tx,dy=p.y-tipY,d=Math.hypot(dx,dy)||.001,min=p.r+.012;
           if(d<min){const nx=dx/d,ny=dy/d,overlap=min-d;p.x+=nx*overlap;p.y+=ny*overlap;p.vx+=nx*.035;p.vy+=ny*.025;p.av+=side*.45;}
         }
       }
