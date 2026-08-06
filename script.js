@@ -16,6 +16,8 @@ const restartButton = document.getElementById("restartButton");
 const backButton = document.getElementById("backButton");
 const homeButton = document.getElementById("homeButton");
 const searchInput = document.getElementById("searchInput");
+const shopGrid = document.getElementById("shopGrid");
+const ticketBalance = document.getElementById("ticketBalance");
 
 const games = {
   snake: {
@@ -50,22 +52,199 @@ const games = {
   }
 };
 
+const shopItems = [
+  {
+    id: "theme-default",
+    type: "theme",
+    name: "Midnight Arcade",
+    description: "The original dark arcade look.",
+    price: 0,
+    className: "",
+    swatch: "linear-gradient(135deg, #6f49ff, #141827)"
+  },
+  {
+    id: "theme-candy",
+    type: "theme",
+    name: "Candy Neon",
+    description: "Pink lights and sugar-rush colors.",
+    price: 120,
+    className: "theme-candy",
+    swatch: "linear-gradient(135deg, #ff5ab8, #7ce7ff)"
+  },
+  {
+    id: "theme-cyber",
+    type: "theme",
+    name: "Cyber Lime",
+    description: "Green glow for a sharper arcade floor.",
+    price: 140,
+    className: "theme-cyber",
+    swatch: "linear-gradient(135deg, #24ff86, #030f0a)"
+  },
+  {
+    id: "theme-sunset",
+    type: "theme",
+    name: "Sunset Gold",
+    description: "Warm lights, prize counter energy.",
+    price: 160,
+    className: "theme-sunset",
+    swatch: "linear-gradient(135deg, #ff8b3d, #ffe45c)"
+  },
+  {
+    id: "effect-spotlight",
+    type: "effect",
+    name: "Spotlight Glow",
+    description: "Adds colorful arcade lighting behind the cards.",
+    price: 90,
+    className: "effect-spotlight",
+    swatch: "radial-gradient(circle at 35% 35%, #a58cff, #141827 70%)"
+  },
+  {
+    id: "layout-xl",
+    type: "layout",
+    name: "Showcase Cards",
+    description: "Bigger labels and roomier game cards.",
+    price: 110,
+    className: "layout-xl",
+    swatch: "linear-gradient(135deg, #43d9ff 0 48%, #ffe45c 48% 100%)"
+  }
+];
+
+let shopState = loadShopState();
 let activeGame = null;
 let running = false;
 let animationId = null;
 let lastFrame = 0;
 let keys = {};
 let score = 0;
-let best = JSON.parse(localStorage.getItem("quickPlayBest") || "{}");
+let best = parseStoredJson("quickPlayBest", {});
+
+function getStoredValue(key) {
+  try {
+    if (typeof localStorage === "undefined") return null;
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function setStoredValue(key, value) {
+  try {
+    if (typeof localStorage === "undefined") return;
+    localStorage.setItem(key, value);
+  } catch {
+    // Storage can be unavailable in some preview contexts.
+  }
+}
+
+function parseStoredJson(key, fallback) {
+  try {
+    const stored = getStoredValue(key);
+    return stored ? JSON.parse(stored) : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 function setScore(nextScore) {
+  const previousScore = score;
   score = nextScore;
   scoreValue.textContent = String(score);
+  awardTickets(previousScore, nextScore);
   if (activeGame && score > (best[activeGame] || 0)) {
     best[activeGame] = score;
-    localStorage.setItem("quickPlayBest", JSON.stringify(best));
+    setStoredValue("quickPlayBest", JSON.stringify(best));
     bestValue.textContent = String(score);
   }
+}
+
+function loadShopState() {
+  const fallback = {
+    tickets: 300,
+    owned: ["theme-default"],
+    equipped: {
+      theme: "theme-default",
+      effect: "",
+      layout: ""
+    }
+  };
+  try {
+    const saved = parseStoredJson("quickPlayShop", null);
+    if (!saved) return fallback;
+    return {
+      tickets: Number.isFinite(saved.tickets) ? saved.tickets : fallback.tickets,
+      owned: Array.isArray(saved.owned) ? Array.from(new Set(["theme-default", ...saved.owned])) : fallback.owned,
+      equipped: {
+        ...fallback.equipped,
+        ...(saved.equipped || {})
+      }
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+function saveShopState() {
+  setStoredValue("quickPlayShop", JSON.stringify(shopState));
+}
+
+function awardTickets(previousScore, nextScore) {
+  if (!running || !activeGame || nextScore <= previousScore) return;
+  const earned = Math.floor(nextScore / 5) - Math.floor(previousScore / 5);
+  if (earned <= 0) return;
+  shopState.tickets += earned;
+  saveShopState();
+  renderShop();
+}
+
+function applyHomeCustomizations() {
+  shopItems.forEach((item) => {
+    if (item.className) document.body.classList.remove(item.className);
+  });
+  Object.values(shopState.equipped).forEach((itemId) => {
+    const item = shopItems.find((entry) => entry.id === itemId);
+    if (item && item.className) document.body.classList.add(item.className);
+  });
+}
+
+function renderShop() {
+  if (!shopGrid || !ticketBalance) return;
+  ticketBalance.textContent = String(shopState.tickets);
+  shopGrid.innerHTML = shopItems.map((item) => {
+    const owned = shopState.owned.includes(item.id);
+    const equipped = shopState.equipped[item.type] === item.id;
+    const canBuy = shopState.tickets >= item.price;
+    const actionText = equipped ? "Equipped" : owned ? "Equip" : `Buy`;
+    const disabled = equipped || (!owned && !canBuy);
+    const priceText = item.price === 0 ? "Free" : `${item.price} tickets`;
+    return `
+      <article class="shop-card">
+        <span class="shop-swatch" style="background: ${item.swatch}"></span>
+        <strong>${item.name}</strong>
+        <p>${item.description}</p>
+        <div class="shop-meta">
+          <span class="shop-price">${owned ? "Owned" : priceText}</span>
+          <button class="shop-action${equipped ? " is-equipped" : ""}" type="button" data-shop-item="${item.id}"${disabled ? " disabled" : ""}>
+            ${actionText}
+          </button>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+function handleShopAction(itemId) {
+  const item = shopItems.find((entry) => entry.id === itemId);
+  if (!item) return;
+  const owned = shopState.owned.includes(item.id);
+  if (!owned) {
+    if (shopState.tickets < item.price) return;
+    shopState.tickets -= item.price;
+    shopState.owned.push(item.id);
+  }
+  shopState.equipped[item.type] = item.id;
+  saveShopState();
+  applyHomeCustomizations();
+  renderShop();
 }
 
 function showOverlay(title, text, buttonText = "Start") {
@@ -172,6 +351,12 @@ searchInput.addEventListener("input", () => {
     const text = `${game.title} ${game.mode} ${game.start}`.toLowerCase();
     tile.classList.toggle("is-hidden", query !== "" && !text.includes(query));
   });
+});
+
+shopGrid.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-shop-item]");
+  if (!button) return;
+  handleShopAction(button.dataset.shopItem);
 });
 
 startButton.addEventListener("click", startGame);
@@ -1234,3 +1419,5 @@ function drawThumbnails() {
 
 drawThumbnails();
 drawIdleCanvas();
+applyHomeCustomizations();
+renderShop();
