@@ -26,20 +26,35 @@
     {id:"void",name:"Void Collector",price:420,color:"#a77bff",glow:"#7b38ff",mark:"✦",description:"Rare ultraviolet plating from beyond the arcade."}
   ];
 
+  const now=new Date(),todayKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+  const daySeed=Math.floor(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())/86400000);
+  function seededShuffle(items,seed){const copy=[...items];let value=seed||1;for(let i=copy.length-1;i>0;i--){value=(value*1664525+1013904223)>>>0;const j=value%(i+1);[copy[i],copy[j]]=[copy[j],copy[i]];}return copy;}
+  const questPool=[
+    {id:"play3",event:"play",goal:3,reward:60,icon:"🎯",title:"Warm up round",description:"Play 3 claw machine rounds"},
+    {id:"play5",event:"play",goal:5,reward:95,icon:"🪙",title:"Five more minutes",description:"Play 5 claw machine rounds"},
+    {id:"win1",event:"win",goal:1,reward:80,icon:"🎁",title:"Prize of the day",description:"Win any prize today"},
+    {id:"win2",event:"win",goal:2,reward:135,icon:"🏆",title:"Double clutch",description:"Win 2 prizes today"},
+    {id:"machines2",event:"machines",goal:2,reward:75,icon:"🕹️",title:"Cabinet sampler",description:"Try 2 different machines"},
+    {id:"machines3",event:"machines",goal:3,reward:110,icon:"🎮",title:"Arcade tour",description:"Try 3 different machines"},
+    {id:"precision1",event:"precision",goal:1,reward:155,icon:"💎",title:"Steady hands",description:"Win once with almost no sway"},
+    {id:"precision2",event:"precision",goal:2,reward:230,icon:"⚡",title:"Claw technician",description:"Make 2 precision wins"}
+  ];
+  const dailyQuests=seededShuffle(questPool,daySeed+31).slice(0,4);
+  const challengeRules=Object.fromEntries(dailyQuests.map(q=>[q.id,q]));
+  const featuredCosmeticIds=new Set(seededShuffle(cosmetics.filter(c=>c.id!=="chrome"),daySeed+97).slice(0,3).map(c=>c.id));
+  const loginRewards=[30,45,60,80,110,150,225];
+
   const stored = JSON.parse(localStorage.getItem("prizeRushProfile") || "{}");
   const state = {
     machine:machines[0], clawX:.55, clawY:.06, clawV:0, swinging:0, phase:"ready", held:null, slipped:false,
     plays:3, tickets:Number.isFinite(stored.tickets)?stored.tickets:250,
     wins:stored.wins || JSON.parse(localStorage.getItem("prizeRushWins") || "[]"),
-    tried:new Set(stored.tried || JSON.parse(localStorage.getItem("prizeRushTried") || "[]")),
+    tried:new Set(stored.triedDate===todayKey?(stored.tried||[]):[]),
     unlocked:new Set(stored.unlocked || ["cosmic","sweet","monster"]),
     ownedCosmetics:new Set(stored.ownedCosmetics || ["chrome"]), cosmetic:stored.cosmetic || "chrome",
-    challengeProgress:stored.challengeProgress || {}, completed:new Set(stored.completed || []),
+    challengeProgress:stored.challengeDate===todayKey?(stored.challengeProgress||{}):{}, completed:new Set(stored.challengeDate===todayKey?(stored.completed||[]):[]),
+    challengeDate:todayKey,loginStreak:stored.loginStreak||0,lastLoginDate:stored.lastLoginDate||null,dailyReward:0,
     sound:true, shopTab:"machines", gripWidth:.075, pile:[]
-  };
-
-  const challengeRules = {
-    play3:{goal:3,reward:60}, win2:{goal:2,reward:130}, machines3:{goal:3,reward:100}, precision:{goal:1,reward:160}
   };
   const canvas=document.getElementById("clawCanvas"), ctx=canvas.getContext("2d");
   const dropBtn=document.getElementById("dropBtn"), leftBtn=document.getElementById("leftBtn"), rightBtn=document.getElementById("rightBtn"), toast=document.getElementById("resultToast");
@@ -49,7 +64,8 @@
     localStorage.setItem("prizeRushProfile",JSON.stringify({
       tickets:state.tickets,wins:state.wins,tried:[...state.tried],unlocked:[...state.unlocked],
       ownedCosmetics:[...state.ownedCosmetics],cosmetic:state.cosmetic,
-      challengeProgress:state.challengeProgress,completed:[...state.completed]
+      challengeProgress:state.challengeProgress,completed:[...state.completed],challengeDate:state.challengeDate,triedDate:todayKey,
+      loginStreak:state.loginStreak,lastLoginDate:state.lastLoginDate
     }));
   }
 
@@ -153,7 +169,7 @@
     if(state.phase!=="ready")return;
     if(state.plays<=0&&state.tickets<state.machine.cost){showToast("OUT OF TICKETS","Complete challenges or save for more plays");return;}
     if(state.plays>0)state.plays--;else state.tickets-=state.machine.cost;
-    state.tried.add(state.machine.id);advanceChallenge("play3",1);setChallenge("machines3",state.tried.size);saveProfile();updateUI();
+    state.tried.add(state.machine.id);advanceEvent("play",1);setEvent("machines",state.tried.size);saveProfile();updateUI();
     dropBtn.disabled=true;state.phase="descending";document.getElementById("machineStatus").textContent="PHYSICS ACTIVE";beep(220,.12);
     const startSway=state.swinging,targetY=.688;state.gripWidth=.080;state.slipped=false;
     await tween(1050,p=>state.clawY=.06+(targetY-.06)*ease(p));
@@ -172,7 +188,7 @@
     state.phase="rising";await tween(1125,p=>state.clawY=targetY-(targetY-.06)*ease(p));
     if(state.held){
       state.phase="returning";const start=state.clawX;await tween(1050,p=>state.clawX=start+(.10-start)*ease(p));
-      const won=state.held;state.held=null;state.wins.push(won.id);state.tickets+=state.machine.id==="monster"?50:25;advanceChallenge("win2",1);if(startSway<.18)advanceChallenge("precision",1);renderCollection();
+      const won=state.held;state.held=null;state.wins.push(won.id);state.tickets+=state.machine.id==="monster"?50:25;advanceEvent("win",1);if(startSway<.18)advanceEvent("precision",1);renderCollection();
       showToast(`YOU GOT ${won.name.toUpperCase()}!`,state.machine.id==="monster"?"+50 tickets · real physics grab":"+25 tickets · added to your shelf");beep(880,.2);setTimeout(()=>beep(1100,.25),160);
     }else{showToast(state.slipped?"THE PRIZE SLIPPED!":"THE GRIP LET GO",state.slipped?"Move gently after contact — weight and momentum can break the grip":"Good alignment improves your odds — try the grip again");beep(145,.22);}
     if(state.pile.length<6)makePile();state.phase="ready";state.clawY=.06;state.gripWidth=.075;dropBtn.disabled=false;document.getElementById("machineStatus").textContent="MACHINE READY";saveProfile();updateUI();
@@ -182,11 +198,23 @@
   const ease=p=>p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
   function showToast(title,sub){toast.innerHTML=`${title}<small>${sub}</small>`;toast.classList.add("show");setTimeout(()=>toast.classList.remove("show"),2800);}
 
-  function setChallenge(id,value){state.challengeProgress[id]=Math.max(state.challengeProgress[id]||0,Math.min(value,challengeRules[id].goal));finishChallenge(id);updateChallenges();}
-  function advanceChallenge(id,amount){state.challengeProgress[id]=Math.min((state.challengeProgress[id]||0)+amount,challengeRules[id].goal);finishChallenge(id);updateChallenges();}
+  function setEvent(event,value){dailyQuests.filter(q=>q.event===event).forEach(q=>{state.challengeProgress[q.id]=Math.max(state.challengeProgress[q.id]||0,Math.min(value,q.goal));finishChallenge(q.id);});updateChallenges();}
+  function advanceEvent(event,amount){dailyQuests.filter(q=>q.event===event).forEach(q=>{state.challengeProgress[q.id]=Math.min((state.challengeProgress[q.id]||0)+amount,q.goal);finishChallenge(q.id);});updateChallenges();}
   function finishChallenge(id){const rule=challengeRules[id];if((state.challengeProgress[id]||0)>=rule.goal&&!state.completed.has(id)){state.completed.add(id);state.tickets+=rule.reward;showToast("CHALLENGE CLEARED!",`+${rule.reward} tickets added to your balance`);beep(760,.15);saveProfile();}}
+  function renderChallenges(){document.getElementById("challengeList").innerHTML=dailyQuests.map(q=>`<article class="challenge" data-challenge="${q.id}"><div class="challenge-icon">${q.icon}</div><div><b>${q.title}</b><p>${q.description} <span class="challenge-count">0/${q.goal}</span></p><div class="progress"><i></i></div></div><span class="reward">+${q.reward} ◆</span></article>`).join("");}
   function updateChallenges(){
     Object.entries(challengeRules).forEach(([id,rule])=>{const el=document.querySelector(`[data-challenge="${id}"]`);if(!el)return;const value=Math.min(state.challengeProgress[id]||0,rule.goal);el.classList.toggle("complete",state.completed.has(id));el.querySelector(".progress i").style.width=`${value/rule.goal*100}%`;el.querySelector(".challenge-count").textContent=`${value}/${rule.goal}`;});
+  }
+  function dateDistance(from,to){if(!from)return 99;const [fy,fm,fd]=from.split("-").map(Number),[ty,tm,td]=to.split("-").map(Number);return Math.round((Date.UTC(ty,tm-1,td)-Date.UTC(fy,fm-1,fd))/86400000);}
+  function applyDailyLogin(){
+    if(state.lastLoginDate===todayKey)return;
+    state.loginStreak=dateDistance(state.lastLoginDate,todayKey)===1?state.loginStreak+1:1;
+    state.dailyReward=loginRewards[(state.loginStreak-1)%loginRewards.length];state.tickets+=state.dailyReward;state.lastLoginDate=todayKey;saveProfile();
+  }
+  function renderLoginStreak(){
+    const cycleDay=(state.loginStreak-1)%7+1;document.getElementById("streakCount").textContent=state.loginStreak;
+    document.getElementById("streakDays").innerHTML=loginRewards.map((reward,i)=>`<span class="${i<cycleDay?"done":""}" title="Day ${i+1}: ${reward} tickets">${i+1}</span>`).join("");
+    document.getElementById("nextReward").textContent=`NEXT: +${loginRewards[cycleDay%7]} ◆`;
   }
   function updateUI(){document.getElementById("ticketCount").textContent=state.tickets;document.getElementById("shopTicketCount").textContent=state.tickets;document.getElementById("playsLeft").textContent=state.plays;}
 
@@ -205,11 +233,11 @@
   function renderCollection(){const all=machines.flatMap(m=>m.prizes);document.getElementById("collectionGrid").innerHTML=all.map(p=>`<div class="collection-item ${state.wins.includes(p.id)?"won":""}" title="${p.name}"><span>${state.wins.includes(p.id)?p.icon:"?"}</span><small>${state.wins.includes(p.id)?p.name:"Locked"}</small></div>`).join("");}
 
   function renderShop(){
-    const items=state.shopTab==="machines"?machines.filter(m=>m.unlockPrice):cosmetics;
+    const items=state.shopTab==="machines"?machines.filter(m=>m.unlockPrice):cosmetics.filter(c=>c.id==="chrome"||state.ownedCosmetics.has(c.id)||featuredCosmeticIds.has(c.id));
     document.getElementById("shopGrid").innerHTML=items.map(item=>{
       const isMachine="unlockPrice" in item,owned=isMachine?state.unlocked.has(item.id):state.ownedCosmetics.has(item.id),equipped=!isMachine&&state.cosmetic===item.id,price=isMachine?item.unlockPrice:item.price;
       const buttonLabel=isMachine?(owned?"UNLOCKED":`UNLOCK · ${price} ◆`):(equipped?"EQUIPPED":owned?"EQUIP":price===0?"OWNED":`BUY · ${price} ◆`);
-      return `<article class="shop-card ${equipped?"equipped":""}" style="--item-accent:${item.accent||item.color}"><div class="shop-preview ${isMachine?"":"claw-preview"}">${isMachine?item.prizes[0].icon:item.mark}</div><div class="shop-info"><small>${isMachine?"NEW CABINET":"CLAW COSMETIC"}</small><h3>${item.name}</h3><p>${isMachine?`${item.difficulty}. Includes 4 new collectible prizes.`:item.description}</p><button class="buy-btn" data-shop-id="${item.id}" ${owned&&isMachine||equipped?"disabled":""}>${buttonLabel}</button></div></article>`;
+      return `<article class="shop-card ${equipped?"equipped":""}" style="--item-accent:${item.accent||item.color}"><div class="shop-preview ${isMachine?"":"claw-preview"}">${isMachine?item.prizes[0].icon:item.mark}</div><div class="shop-info"><small>${isMachine?"NEW CABINET":owned?"OWNED COSMETIC":"TODAY'S FEATURE"}</small><h3>${item.name}</h3><p>${isMachine?`${item.difficulty}. Includes 4 new collectible prizes.`:item.description}</p><button class="buy-btn" data-shop-id="${item.id}" ${owned&&isMachine||equipped?"disabled":""}>${buttonLabel}</button></div></article>`;
     }).join("");
     document.querySelectorAll(".buy-btn:not(:disabled)").forEach(btn=>btn.addEventListener("click",()=>buyOrEquip(btn.dataset.shopId)));
   }
@@ -226,5 +254,6 @@
   dropBtn.addEventListener("click",drop);document.getElementById("soundToggle").addEventListener("click",e=>{state.sound=!state.sound;e.currentTarget.textContent=state.sound?"♪":"×";e.currentTarget.setAttribute("aria-label",state.sound?"Mute arcade sounds":"Turn on arcade sounds");});
   document.querySelectorAll("[data-shop-tab]").forEach(btn=>btn.addEventListener("click",()=>{state.shopTab=btn.dataset.shopTab;document.querySelectorAll("[data-shop-tab]").forEach(b=>b.classList.toggle("active",b===btn));renderShop();}));
 
-  makePile();renderGames();renderShop();renderCollection();updateChallenges();updateUI();requestAnimationFrame(render);
+  applyDailyLogin();makePile();renderChallenges();renderGames();renderShop();renderCollection();updateChallenges();renderLoginStreak();updateUI();requestAnimationFrame(render);
+  if(state.dailyReward)setTimeout(()=>showToast("DAILY LOGIN REWARD!",`Day ${state.loginStreak} streak · +${state.dailyReward} tickets`),450);
 })();
