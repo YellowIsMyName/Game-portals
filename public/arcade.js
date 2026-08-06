@@ -159,10 +159,14 @@
   function stopMove(){activeDirection=0;}
 
   function findPhysicalGrip(){
-    const cp=clawPosition(),tipY=cp.y+.143;
-    return state.pile.map((p,index)=>({p,index,dx:Math.abs(p.x-cp.x),dy:Math.abs(p.y-tipY)}))
-      .filter(c=>c.dx<Math.max(.105,c.p.r*2.4)&&c.dy<Math.max(.125,c.p.r*3.0))
-      .sort((a,b)=>(a.dx+a.dy*.35)-(b.dx+b.dy*.35))[0]||null;
+    const cp=clawPosition(),tipY=cp.y+.143,predictedClosedWidth=.045*.72;
+    return state.pile.map((p,index)=>{
+      const dx=Math.abs(p.x-cp.x),dy=Math.abs(p.y-tipY);
+      const leftDistance=Math.hypot(p.x-(cp.x-predictedClosedWidth),p.y-tipY);
+      const rightDistance=Math.hypot(p.x-(cp.x+predictedClosedWidth),p.y-tipY);
+      return {p,index,dx,dy,leftDistance,rightDistance};
+    }).filter(c=>c.leftDistance<=c.p.r+.020&&c.rightDistance<=c.p.r+.020&&c.dy<=c.p.r+.016)
+      .sort((a,b)=>Math.max(a.leftDistance,a.rightDistance)-Math.max(b.leftDistance,b.rightDistance))[0]||null;
   }
 
   async function drop(){
@@ -180,8 +184,8 @@
     contact=contact||findPhysicalGrip();
     if(contact){
       const forceRequired=contact.p.weight+state.swinging*.06;
-      const baseChance=state.machine.id==="sweet"?.99:state.machine.id==="monster"?.92:state.machine.id==="retro"?.90:.96;
-      const alignment=Math.max(0,1-contact.dx/.105),grabChance=Math.max(.88,Math.min(.995,baseChance+alignment*.035-state.swinging*.015-contact.p.weight*.008));
+      const baseChance=state.machine.id==="sweet"?.72:state.machine.id==="monster"?.55:state.machine.id==="retro"?.50:.64;
+      const alignment=Math.max(0,1-contact.dx/(contact.p.r*.62)),grabChance=Math.max(.30,Math.min(.84,baseChance+alignment*.12-state.swinging*.07-contact.p.weight*.045));
       if(forceRequired<=state.machine.grip+.22&&Math.random()<grabChance){
         const pocket=clawPosition();state.held=contact.p;state.pile.splice(state.pile.indexOf(contact.p),1);
         state.held.x+=(pocket.x-state.held.x)*.48;state.held.y+=(pocket.y+.142-state.held.y)*.35;state.held.vx=state.clawV*.05;state.held.vy=0;beep(660,.13);document.getElementById("machineStatus").textContent="PRIZE SECURED";
