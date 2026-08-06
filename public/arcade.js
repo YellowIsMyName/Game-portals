@@ -18,7 +18,12 @@
     {id:"chrome",name:"Classic Chrome",price:0,color:"#d5cede",glow:"transparent",mark:"⌄",description:"The original polished arcade claw."},
     {id:"pink",name:"Hot Pink Grip",price:140,color:"#ff3d91",glow:"#ff3d91",mark:"⌄",description:"Pink enamel with a soft neon edge glow."},
     {id:"plasma",name:"Plasma Talons",price:220,color:"#24e0d0",glow:"#24e0d0",mark:"ϟ",description:"Electric cyan arms and a plasma badge."},
-    {id:"gold",name:"Gold Standard",price:360,color:"#ffd733",glow:"#ffd733",mark:"★",description:"A trophy-grade finish for serious collectors."}
+    {id:"gold",name:"Gold Standard",price:360,color:"#ffd733",glow:"#ffd733",mark:"★",description:"A trophy-grade finish for serious collectors."},
+    {id:"sapphire",name:"Sapphire Circuit",price:180,color:"#4f8cff",glow:"#246dff",mark:"◆",description:"Deep blue plating with a crisp electric shine."},
+    {id:"toxic",name:"Toxic Grabber",price:260,color:"#a8ef3e",glow:"#76ff28",mark:"×",description:"Radioactive green talons from the monster floor."},
+    {id:"candy",name:"Candy Clutch",price:195,color:"#ff9ac8",glow:"#ff4c9a",mark:"♥",description:"Bubblegum enamel made for Sweet Scoop regulars."},
+    {id:"inferno",name:"Inferno Hooks",price:310,color:"#ff7138",glow:"#ff3d20",mark:"▲",description:"Hot orange steel with a furnace-bright glow."},
+    {id:"void",name:"Void Collector",price:420,color:"#a77bff",glow:"#7b38ff",mark:"✦",description:"Rare ultraviolet plating from beyond the arcade."}
   ];
 
   const stored = JSON.parse(localStorage.getItem("prizeRushProfile") || "{}");
@@ -30,7 +35,7 @@
     unlocked:new Set(stored.unlocked || ["cosmic","sweet","monster"]),
     ownedCosmetics:new Set(stored.ownedCosmetics || ["chrome"]), cosmetic:stored.cosmetic || "chrome",
     challengeProgress:stored.challengeProgress || {}, completed:new Set(stored.completed || []),
-    sound:true, shopTab:"machines", gripWidth:.065, pile:[]
+    sound:true, shopTab:"machines", gripWidth:.075, pile:[]
   };
 
   const challengeRules = {
@@ -78,11 +83,11 @@
     const pos=clawPosition(time),x=pos.x*w,y=pos.y*h,skin=cosmetic(),open=state.gripWidth*w;
     ctx.save();ctx.shadowColor=skin.glow;ctx.shadowBlur=skin.glow==="transparent"?0:14;
     ctx.strokeStyle=skin.color;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,y);ctx.stroke();
-    ctx.fillStyle="#665d79";ctx.fillRect(x-25,y-7,50,21);ctx.fillStyle=skin.color;roundedRect(x-18,y-12,36,17,6);
+    ctx.fillStyle="#665d79";ctx.fillRect(x-31,y-8,62,25);ctx.fillStyle=skin.color;roundedRect(x-23,y-14,46,20,7);
     ctx.fillStyle="#160b2c";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font="bold 12px sans-serif";ctx.fillText(skin.mark,x,y-3);
-    ctx.strokeStyle=skin.color;ctx.lineWidth=8;ctx.lineCap="round";ctx.lineJoin="round";
-    ctx.beginPath();ctx.moveTo(x-12,y+7);ctx.bezierCurveTo(x-open*.72,y+24,x-open*1.08,y+54,x-open*.72,y+78);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(x+12,y+7);ctx.bezierCurveTo(x+open*.72,y+24,x+open*1.08,y+54,x+open*.72,y+78);ctx.stroke();ctx.restore();
+    ctx.strokeStyle=skin.color;ctx.lineWidth=10;ctx.lineCap="round";ctx.lineJoin="round";
+    ctx.beginPath();ctx.moveTo(x-15,y+8);ctx.bezierCurveTo(x-open*.75,y+28,x-open*1.12,y+62,x-open*.72,y+86);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x+15,y+8);ctx.bezierCurveTo(x+open*.75,y+28,x+open*1.12,y+62,x+open*.72,y+86);ctx.stroke();ctx.restore();
     if(state.held) drawPrize(state.held,w,h);
   }
 
@@ -101,7 +106,7 @@
           const rvx=b.vx-a.vx,rvy=b.vy-a.vy,along=rvx*nx+rvy*ny;if(along<0){const impulse=-(1.22)*along/(1/a.mass+1/b.mass);a.vx-=impulse*nx/a.mass;a.vy-=impulse*ny/a.mass;b.vx+=impulse*nx/b.mass;b.vy+=impulse*ny/b.mass;a.av-=along*.7;b.av+=along*.7;}}
       }
       if(state.phase==="descending"||state.phase==="grabbing"||state.phase==="checking"){
-        const cp=clawPosition(time),tipY=cp.y+.125;
+        const cp=clawPosition(time),tipY=cp.y+.143;
         for(const p of state.pile)for(const side of [-1,1]){
           const tx=cp.x+side*state.gripWidth*.72,dx=p.x-tx,dy=p.y-tipY,d=Math.hypot(dx,dy)||.001,min=p.r+.012;
           if(d<min){const nx=dx/d,ny=dy/d,overlap=min-d;p.x+=nx*overlap;p.y+=ny*overlap;p.vx+=nx*.035;p.vy+=ny*.025;p.av+=side*.45;}
@@ -138,7 +143,7 @@
   function stopMove(){activeDirection=0;}
 
   function findPhysicalGrip(){
-    const cp=clawPosition(),tipY=cp.y+.125;
+    const cp=clawPosition(),tipY=cp.y+.143;
     return state.pile.map((p,index)=>({p,index,dx:Math.abs(p.x-cp.x),dy:Math.abs(p.y-tipY)}))
       .filter(c=>c.dx<Math.max(.078,c.p.r*1.65)&&c.dy<c.p.r*2.05)
       .sort((a,b)=>(a.dx+a.dy*.35)-(b.dx+b.dy*.35))[0]||null;
@@ -150,12 +155,12 @@
     if(state.plays>0)state.plays--;else state.tickets-=state.machine.cost;
     state.tried.add(state.machine.id);advanceChallenge("play3",1);setChallenge("machines3",state.tried.size);saveProfile();updateUI();
     dropBtn.disabled=true;state.phase="descending";document.getElementById("machineStatus").textContent="PHYSICS ACTIVE";beep(220,.12);
-    const startSway=state.swinging,targetY=.705;state.gripWidth=.068;state.slipped=false;
+    const startSway=state.swinging,targetY=.688;state.gripWidth=.080;state.slipped=false;
     await tween(1050,p=>state.clawY=.06+(targetY-.06)*ease(p));
     let contact=findPhysicalGrip();
-    state.phase="grabbing";await tween(440,p=>state.gripWidth=.068-(.030*ease(p)));
+    state.phase="grabbing";await tween(440,p=>state.gripWidth=.080-(.035*ease(p)));
     state.phase="checking";document.getElementById("machineStatus").textContent="TESTING THE GRIP...";beep(410,.08);
-    await tween(900,p=>state.gripWidth=.038-Math.sin(p*Math.PI*3)*.003*(1-p));
+    await tween(900,p=>state.gripWidth=.045-Math.sin(p*Math.PI*3)*.003*(1-p));
     contact=contact||findPhysicalGrip();
     if(contact){
       const forceRequired=contact.p.weight+state.swinging*.06;
@@ -170,7 +175,7 @@
       const won=state.held;state.held=null;state.wins.push(won.id);state.tickets+=state.machine.id==="monster"?50:25;advanceChallenge("win2",1);if(startSway<.18)advanceChallenge("precision",1);renderCollection();
       showToast(`YOU GOT ${won.name.toUpperCase()}!`,state.machine.id==="monster"?"+50 tickets · real physics grab":"+25 tickets · added to your shelf");beep(880,.2);setTimeout(()=>beep(1100,.25),160);
     }else{showToast(state.slipped?"THE PRIZE SLIPPED!":"THE GRIP LET GO",state.slipped?"Move gently after contact — weight and momentum can break the grip":"Good alignment improves your odds — try the grip again");beep(145,.22);}
-    if(state.pile.length<6)makePile();state.phase="ready";state.clawY=.06;state.gripWidth=.065;dropBtn.disabled=false;document.getElementById("machineStatus").textContent="MACHINE READY";saveProfile();updateUI();
+    if(state.pile.length<6)makePile();state.phase="ready";state.clawY=.06;state.gripWidth=.075;dropBtn.disabled=false;document.getElementById("machineStatus").textContent="MACHINE READY";saveProfile();updateUI();
   }
 
   function tween(ms,tick){return new Promise(resolve=>{const start=performance.now();function frame(now){const p=Math.min(1,(now-start)/ms);tick(p);p<1?requestAnimationFrame(frame):resolve();}requestAnimationFrame(frame);});}
