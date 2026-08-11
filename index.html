@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#12072c" />
+    <meta name="description" content="A neon arcade of playable claw machines, daily challenges, and collectible prizes." />
+    <title>Prize Rush Arcade</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="Prize Rush home">
+        <span class="brand-mark">PR</span>
+        <span><b>PRIZE RUSH</b><small>ONLINE ARCADE</small></span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a class="active" href="#games">Arcade</a>
+        <a href="#shop">Shop</a>
+        <a href="#collection">My prizes</a>
+        <a href="#challenges">Challenges</a>
+      </nav>
+      <div class="player-pill" aria-label="Your ticket balance">
+        <span class="ticket-icon">◆</span>
+        <span><small>MY TICKETS</small><strong id="ticketCount">250</strong></span>
+        <button id="soundToggle" class="sound-btn" aria-label="Toggle arcade sounds" title="Toggle sounds">♪</button>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="eyebrow"><span></span> THE ARCADE IS OPEN <span></span></div>
+        <h1 id="hero-title">GRAB IT.<br /><em>WIN IT.</em></h1>
+        <p>Real claw-machine thrills, right from your screen.<br />Line it up, drop the claw, and build your prize shelf.</p>
+        <div class="hero-actions">
+          <a class="primary-cta" href="#machine">PLAY A MACHINE <span>→</span></a>
+          <span class="live-note"><i></i> 148 players grabbing now</span>
+        </div>
+      </section>
+
+      <section class="play-layout" id="machine" aria-label="Featured claw machine">
+        <div class="machine-card">
+          <div class="machine-topline">
+            <div>
+              <span class="status-dot"></span>
+              <span id="machineStatus">MACHINE READY</span>
+            </div>
+            <div><b id="machineName">COSMIC CLAW</b><small id="machineDifficulty">MEDIUM GRIP</small></div>
+            <div class="cost"><span>◆</span> 25 / PLAY</div>
+          </div>
+
+          <div class="machine-shell">
+            <div class="machine-marquee">
+              <span>★</span><b id="marqueeName">COSMIC CLAW</b><span>★</span>
+            </div>
+            <div class="bulbs" aria-hidden="true"></div>
+            <div class="glass-wrap">
+              <canvas id="clawCanvas" width="900" height="600" aria-label="Playable claw machine with prizes"></canvas>
+              <div class="glass-shine"></div>
+              <div class="drop-zone"><span>PRIZE<br />CHUTE</span></div>
+              <div id="resultToast" class="result-toast" role="status" aria-live="polite"></div>
+            </div>
+            <div class="control-deck">
+              <div class="control-copy">
+                <small>MOVE THE CLAW</small>
+                <b>LINE IT UP, THEN DROP!</b>
+              </div>
+              <div class="dpad" aria-label="Claw movement controls">
+                <button id="leftBtn" aria-label="Move claw left">←</button>
+                <button id="rightBtn" aria-label="Move claw right">→</button>
+              </div>
+              <button id="dropBtn" class="drop-btn"><span>DROP</span><small>THE CLAW</small></button>
+              <div class="plays-left"><span id="playsLeft">3</span><small>FREE PLAYS</small></div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="side-panel" id="challenges">
+          <div class="panel-heading">
+            <div><small>TODAY'S</small><h2>CHALLENGES</h2></div>
+            <span>NEW SET EVERY DAY</span>
+          </div>
+          <div class="challenge-list" id="challengeList"></div>
+          <div class="streak-card">
+            <div><small>DAILY LOGIN REWARD</small><strong><span id="streakCount">1</span> DAY STREAK</strong><small id="nextReward">NEXT: +45 ◆</small></div>
+            <div class="streak-days" id="streakDays"></div>
+          </div>
+          <p class="tip"><b>PRO TIP</b> Prizes now collide, roll, and push one another. Use the claw to separate a crowded target before grabbing it.</p>
+        </aside>
+      </section>
+
+      <section class="games-section" id="games" aria-labelledby="games-title">
+        <div class="section-heading">
+          <div><span class="kicker">PICK YOUR MACHINE</span><h2 id="games-title">ARCADE FLOOR</h2></div>
+          <p>Every machine has different prizes, grip strength, and physics.</p>
+        </div>
+        <div class="game-grid" id="gameGrid"></div>
+      </section>
+
+      <section class="shop-section" id="shop" aria-labelledby="shop-title">
+        <div class="shop-banner">
+          <div>
+            <span class="kicker">SPEND YOUR WINNINGS</span>
+            <h2 id="shop-title">PRIZE COUNTER</h2>
+            <p>Unlock new cabinets and customize your claw. Featured cosmetics rotate every day.</p>
+          </div>
+          <div class="shop-balance"><small>AVAILABLE</small><strong><span id="shopTicketCount">250</span> ◆</strong></div>
+        </div>
+        <div class="shop-tabs" role="tablist" aria-label="Shop categories">
+          <button class="active" data-shop-tab="machines" role="tab">NEW MACHINES</button>
+          <button data-shop-tab="cosmetics" role="tab">CLAW COSMETICS</button>
+        </div>
+        <div class="shop-grid" id="shopGrid"></div>
+      </section>
+
+      <section class="collection-section" id="collection" aria-labelledby="collection-title">
+        <div class="collection-copy">
+          <span class="kicker">YOUR TROPHY SHELF</span>
+          <h2 id="collection-title">PRIZE COLLECTION</h2>
+          <p>Catch them all. Your wins stay saved on this device.</p>
+        </div>
+        <div class="collection-grid" id="collectionGrid"></div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="brand footer-brand"><span class="brand-mark">PR</span><span><b>PRIZE RUSH</b><small>THE CLAW NEVER SLEEPS</small></span></div>
+      <p>Made for quick breaks, big wins, and one-more-try energy.</p>
+      <a href="#top">BACK TO TOP ↑</a>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
