@@ -100,11 +100,12 @@
     ctx.save();ctx.shadowColor=skin.glow;ctx.shadowBlur=skin.glow==="transparent"?0:14;
     ctx.strokeStyle=skin.color;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,y);ctx.stroke();
     ctx.fillStyle="#665d79";ctx.fillRect(x-31,y-8,62,25);ctx.fillStyle=skin.color;roundedRect(x-23,y-14,46,20,7);
-    ctx.fillStyle="#160b2c";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font="bold 12px sans-serif";ctx.fillText(skin.mark,x,y-3);
+    ctx.fillStyle="#160b2c";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font="bold 12px sans-serif";ctx.fillText(skin.mark,x,y-3);ctx.restore();
+    if(state.held) drawPrize(state.held,w,h);
+    ctx.save();ctx.shadowColor=skin.glow;ctx.shadowBlur=skin.glow==="transparent"?0:14;
     ctx.strokeStyle=skin.color;ctx.lineWidth=10;ctx.lineCap="round";ctx.lineJoin="round";
     ctx.beginPath();ctx.moveTo(x-15,y+8);ctx.bezierCurveTo(x-open*.75,y+28,x-open*1.12,y+62,x-open*.72,y+86);ctx.stroke();
     ctx.beginPath();ctx.moveTo(x+15,y+8);ctx.bezierCurveTo(x+open*.75,y+28,x+open*1.12,y+62,x+open*.72,y+86);ctx.stroke();ctx.restore();
-    if(state.held) drawPrize(state.held,w,h);
   }
 
   function resolvePrizePhysics(dt,time){
@@ -133,18 +134,31 @@
 
   function resolveHeldPhysics(dt,time){
     const p=state.held;if(!p)return;
-    const cp=clawPosition(time), pocketX=cp.x, pocketY=cp.y+.142;
-    const gripMargin=Math.max(.02,state.machine.grip+.22-p.weight), springX=55+gripMargin*68, springY=38+gripMargin*54;
-    const dx=pocketX-p.x,dy=pocketY-p.y;
-    p.vy+=.58*dt;
-    p.vx+=dx*springX*dt;p.vy+=dy*springY*dt;
-    p.vx*=Math.pow(.28,dt);p.vy*=Math.pow(.42,dt);
-    p.x+=p.vx*dt;p.y+=p.vy*dt;
-    p.av+=dx*5.5*dt;p.av*=Math.pow(.2,dt);p.rot+=p.av*dt;
-    const horizontalSlip=Math.abs(p.x-pocketX)>Math.max(.125,p.r*3.1);
-    const verticalSlip=p.y-pocketY>Math.max(.135,p.r*3.4);
-    if(horizontalSlip||verticalSlip){
-      p.vx+=(p.x-pocketX)*.7;p.vy=Math.max(p.vy,.04);state.pile.push(p);state.held=null;state.slipped=true;beep(135,.16);
+    const cp=clawPosition(time),targetX=cp.x,targetY=cp.y+.118,safeDt=Math.max(dt,.001);
+    const previousX=Number.isFinite(state.holdAnchorX)?state.holdAnchorX:targetX;
+    const previousY=Number.isFinite(state.holdAnchorY)?state.holdAnchorY:targetY;
+    const anchorVx=Math.max(-1.2,Math.min(1.2,(targetX-previousX)/safeDt));
+    const anchorVy=Math.max(-1.2,Math.min(1.2,(targetY-previousY)/safeDt));
+    state.holdAnchorX=targetX;state.holdAnchorY=targetY;
+
+    const steps=3,step=safeDt/steps,spring=72,damping=2*Math.sqrt(spring);
+    for(let i=0;i<steps;i++){
+      const ax=spring*(targetX-p.x)+damping*(anchorVx-p.vx);
+      const ay=spring*(targetY-p.y)+damping*(anchorVy-p.vy)+.58;
+      p.vx+=ax*step;p.vy+=ay*step;p.x+=p.vx*step;p.y+=p.vy*step;
+
+      const maxHorizontal=Math.max(.010,state.gripWidth*.72-p.r*.55),offsetX=p.x-targetX;
+      if(Math.abs(offsetX)>maxHorizontal){p.x=targetX+Math.sign(offsetX)*maxHorizontal;p.vx=anchorVx+(p.vx-anchorVx)*-.12;}
+      const minY=cp.y+.098,maxY=cp.y+.142;
+      if(p.y<minY){p.y=minY;p.vy=anchorVy+Math.abs(p.vy-anchorVy)*.08;}
+      if(p.y>maxY){p.y=maxY;p.vy=anchorVy-Math.abs(p.vy-anchorVy)*.08;}
+    }
+
+    const targetRotation=Math.max(-.20,Math.min(.20,(p.x-targetX)*9));
+    p.av+=(targetRotation-p.rot)*20*safeDt;p.av*=Math.pow(.08,safeDt);p.rot+=p.av*safeDt;
+    const relativeSpeed=Math.hypot(p.vx-anchorVx,p.vy-anchorVy);
+    if(relativeSpeed>1.45){
+      p.vx=anchorVx+(p.x-targetX)*1.2;p.vy=Math.max(anchorVy+.08,.05);state.pile.push(p);state.held=null;state.slipped=true;state.holdAnchorX=null;state.holdAnchorY=null;beep(135,.16);
     }
   }
 
@@ -188,7 +202,7 @@
       const alignment=Math.max(0,1-contact.dx/(contact.p.r*.62)),grabChance=Math.max(.30,Math.min(.84,baseChance+alignment*.12-state.swinging*.07-contact.p.weight*.045));
       if(forceRequired<=state.machine.grip+.22&&Math.random()<grabChance){
         const pocket=clawPosition();state.held=contact.p;state.pile.splice(state.pile.indexOf(contact.p),1);
-        state.held.x+=(pocket.x-state.held.x)*.48;state.held.y+=(pocket.y+.142-state.held.y)*.35;state.held.vx=state.clawV*.05;state.held.vy=0;beep(660,.13);document.getElementById("machineStatus").textContent="PRIZE SECURED";
+        state.held.x+=(pocket.x-state.held.x)*.48;state.held.y+=(pocket.y+.118-state.held.y)*.45;state.held.vx=0;state.held.vy=0;state.held.av=0;state.holdAnchorX=pocket.x;state.holdAnchorY=pocket.y+.118;beep(660,.13);document.getElementById("machineStatus").textContent="PRIZE SECURED";
       }
       else {contact.p.vx+=(contact.p.x-state.clawX)*.7;contact.p.vy=-.08;}
     }
