@@ -3,15 +3,15 @@
 
   const machines = [
     { id:"cosmic", name:"COSMIC CLAW", difficulty:"MEDIUM GRIP", cost:25, grip:.76, accent:"#24e0d0", bg:"#142b58", badge:"POPULAR", prizes:[
-      {id:"astro",name:"Astro Bear",icon:"🐻",weight:.56},{id:"moon",name:"Moon Bunny",icon:"🐰",weight:.44},{id:"alien",name:"Lil Alien",icon:"👽",weight:.38},{id:"rocket",name:"Rocket Pal",icon:"🚀",weight:.62}]},
+      {id:"astro",name:"Astro Bear",icon:"🐻",weight:.56,tickets:65},{id:"moon",name:"Moon Bunny",icon:"🐰",weight:.44,tickets:70},{id:"alien",name:"Lil Alien",icon:"👽",weight:.38,tickets:80},{id:"rocket",name:"Rocket Pal",icon:"🚀",weight:.62,tickets:75}]},
     { id:"sweet", name:"SWEET SCOOP", difficulty:"EASY GRIP", cost:20, grip:.82, accent:"#ff7db8", bg:"#4c153d", badge:"EASY WIN", prizes:[
-      {id:"donut",name:"Donut Buddy",icon:"🍩",weight:.32},{id:"cupcake",name:"Cupcake Cutie",icon:"🧁",weight:.40},{id:"berry",name:"Berry Pop",icon:"🍓",weight:.30},{id:"candy",name:"Candy Star",icon:"🍬",weight:.28}]},
-    { id:"monster", name:"MONSTER DROP", difficulty:"HEAVY PRIZES", cost:30, grip:.72, accent:"#a8ef3e", bg:"#273f18", badge:"2X TICKETS", prizes:[
-      {id:"dragon",name:"Pocket Dragon",icon:"🐲",weight:.74},{id:"dino",name:"Neon Dino",icon:"🦖",weight:.68},{id:"octo",name:"Grumpy Octo",icon:"🐙",weight:.58},{id:"ghost",name:"Glow Ghost",icon:"👻",weight:.47}]},
+      {id:"donut",name:"Donut Buddy",icon:"🍩",weight:.32,tickets:45},{id:"cupcake",name:"Cupcake Cutie",icon:"🧁",weight:.40,tickets:50},{id:"berry",name:"Berry Pop",icon:"🍓",weight:.30,tickets:55},{id:"candy",name:"Candy Star",icon:"🍬",weight:.28,tickets:60}]},
+    { id:"monster", name:"MONSTER DROP", difficulty:"HEAVY PRIZES", cost:30, grip:.72, accent:"#a8ef3e", bg:"#273f18", badge:"HIGH PAYOUT", prizes:[
+      {id:"dragon",name:"Pocket Dragon",icon:"🐲",weight:.74,tickets:95},{id:"dino",name:"Neon Dino",icon:"🦖",weight:.68,tickets:100},{id:"octo",name:"Grumpy Octo",icon:"🐙",weight:.58,tickets:110},{id:"ghost",name:"Glow Ghost",icon:"👻",weight:.47,tickets:120}]},
     { id:"ocean", name:"DEEP SEA GRAB", difficulty:"BOUNCY PRIZES", cost:35, grip:.78, unlockPrice:320, accent:"#2aa8ff", bg:"#07375b", badge:"SHOP UNLOCK", prizes:[
-      {id:"whale",name:"Mini Whale",icon:"🐳",weight:.53},{id:"puffer",name:"Puffer Pal",icon:"🐡",weight:.46},{id:"crab",name:"Crab Champ",icon:"🦀",weight:.61},{id:"pearl",name:"Pearl Shell",icon:"🐚",weight:.36}]},
+      {id:"whale",name:"Mini Whale",icon:"🐳",weight:.53,tickets:105},{id:"puffer",name:"Puffer Pal",icon:"🐡",weight:.46,tickets:115},{id:"crab",name:"Crab Champ",icon:"🦀",weight:.61,tickets:125},{id:"pearl",name:"Pearl Shell",icon:"🐚",weight:.36,tickets:140}]},
     { id:"retro", name:"GOLD RUSH 84", difficulty:"EXPERT GRIP", cost:40, grip:.70, unlockPrice:500, accent:"#ffd733", bg:"#4d3107", badge:"SHOP UNLOCK", prizes:[
-      {id:"crown",name:"Pixel Crown",icon:"👑",weight:.66},{id:"robot",name:"Retro Bot",icon:"🤖",weight:.58},{id:"gem",name:"Lucky Gem",icon:"💎",weight:.48},{id:"trophy",name:"Gold Trophy",icon:"🏆",weight:.72}]}
+      {id:"crown",name:"Pixel Crown",icon:"👑",weight:.66,tickets:150},{id:"robot",name:"Retro Bot",icon:"🤖",weight:.58,tickets:165},{id:"gem",name:"Lucky Gem",icon:"💎",weight:.48,tickets:180},{id:"trophy",name:"Gold Trophy",icon:"🏆",weight:.72,tickets:200}]}
   ];
 
   const cosmetics = [
@@ -209,8 +209,8 @@
     state.phase="rising";await tween(1125,p=>state.clawY=targetY-(targetY-.06)*ease(p));
     if(state.held){
       state.phase="returning";const start=state.clawX;await tween(1050,p=>state.clawX=start+(.10-start)*ease(p));
-      const won=state.held;state.held=null;state.wins.push(won.id);state.tickets+=state.machine.id==="monster"?50:25;advanceEvent("win",1);if(startSway<.18)advanceEvent("precision",1);renderCollection();
-      showToast(`YOU GOT ${won.name.toUpperCase()}!`,state.machine.id==="monster"?"+50 tickets · real physics grab":"+25 tickets · added to your shelf");beep(880,.2);setTimeout(()=>beep(1100,.25),160);
+      const won=state.held;state.held=null;state.wins.push(won.id);state.tickets+=won.tickets;advanceEvent("win",1);if(startSway<.18)advanceEvent("precision",1);renderCollection();
+      showToast(`YOU GOT ${won.name.toUpperCase()}!`,`+${won.tickets} tickets · added to your shelf`);beep(880,.2);setTimeout(()=>beep(1100,.25),160);
     }else{showToast(state.slipped?"THE PRIZE SLIPPED!":"THE GRIP LET GO",state.slipped?"Move gently after contact — weight and momentum can break the grip":"Good alignment improves your odds — try the grip again");beep(145,.22);}
     if(state.pile.length<6)makePile();state.phase="ready";state.clawY=.06;state.gripWidth=.075;dropBtn.disabled=false;document.getElementById("machineStatus").textContent="MACHINE READY";saveProfile();updateUI();
   }
@@ -247,18 +247,19 @@
   }
 
   function renderGames(){
-    document.getElementById("gameGrid").innerHTML=machines.map(m=>{const locked=!state.unlocked.has(m.id);return `<button class="game-tile ${m.id===state.machine.id?"selected":""} ${locked?"locked":""}" data-id="${m.id}" style="--accent:${m.accent};--tile-bg:${m.bg}" aria-label="${locked?"Locked machine":"Play"} ${m.name}"><div class="game-scene"><div class="mini-claw"></div><div class="prize-pile">${m.prizes.map(p=>`<span>${p.icon}</span>`).join("")}</div></div><div class="tile-info"><div><b>${m.name}</b><small>${m.difficulty} · ${m.cost} TICKETS</small></div><span class="tile-badge">${locked?`${m.unlockPrice} ◆`:m.badge}</span></div></button>`;}).join("");
+    document.getElementById("gameGrid").innerHTML=machines.map(m=>{const locked=!state.unlocked.has(m.id),minimumPayout=Math.min(...m.prizes.map(p=>p.tickets));return `<button class="game-tile ${m.id===state.machine.id?"selected":""} ${locked?"locked":""}" data-id="${m.id}" style="--accent:${m.accent};--tile-bg:${m.bg}" aria-label="${locked?"Locked machine":"Play"} ${m.name}"><div class="game-scene"><div class="mini-claw"></div><div class="prize-pile">${m.prizes.map(p=>`<span>${p.icon}</span>`).join("")}</div></div><div class="tile-info"><div><b>${m.name}</b><small>${m.difficulty} · ${m.cost} TO PLAY · WIN ${minimumPayout}+</small></div><span class="tile-badge">${locked?`${m.unlockPrice} ◆`:m.badge}</span></div></button>`;}).join("");
     document.querySelectorAll(".game-tile").forEach(el=>el.addEventListener("click",()=>selectMachine(el.dataset.id)));
   }
 
-  function renderCollection(){const all=machines.flatMap(m=>m.prizes);document.getElementById("collectionGrid").innerHTML=all.map(p=>`<div class="collection-item ${state.wins.includes(p.id)?"won":""}" title="${p.name}"><span>${state.wins.includes(p.id)?p.icon:"?"}</span><small>${state.wins.includes(p.id)?p.name:"Locked"}</small></div>`).join("");}
+  function renderCollection(){const all=machines.flatMap(m=>m.prizes);document.getElementById("collectionGrid").innerHTML=all.map(p=>`<div class="collection-item ${state.wins.includes(p.id)?"won":""}" title="${p.name} · ${p.tickets} tickets"><span>${state.wins.includes(p.id)?p.icon:"?"}</span><small>${state.wins.includes(p.id)?`${p.name} · ${p.tickets} ◆`:`Locked · ${p.tickets} ◆`}</small></div>`).join("");}
 
   function renderShop(){
     const items=state.shopTab==="machines"?machines.filter(m=>m.unlockPrice):cosmetics.filter(c=>c.id==="chrome"||state.ownedCosmetics.has(c.id)||featuredCosmeticIds.has(c.id));
     document.getElementById("shopGrid").innerHTML=items.map(item=>{
       const isMachine="unlockPrice" in item,owned=isMachine?state.unlocked.has(item.id):state.ownedCosmetics.has(item.id),equipped=!isMachine&&state.cosmetic===item.id,price=isMachine?item.unlockPrice:item.price;
       const buttonLabel=isMachine?(owned?"UNLOCKED":`UNLOCK · ${price} ◆`):(equipped?"EQUIPPED":owned?"EQUIP":price===0?"OWNED":`BUY · ${price} ◆`);
-      return `<article class="shop-card ${equipped?"equipped":""}" style="--item-accent:${item.accent||item.color}"><div class="shop-preview ${isMachine?"":"claw-preview"}">${isMachine?item.prizes[0].icon:item.mark}</div><div class="shop-info"><small>${isMachine?"NEW CABINET":owned?"OWNED COSMETIC":"TODAY'S FEATURE"}</small><h3>${item.name}</h3><p>${isMachine?`${item.difficulty}. Includes 4 new collectible prizes.`:item.description}</p><button class="buy-btn" data-shop-id="${item.id}" ${owned&&isMachine||equipped?"disabled":""}>${buttonLabel}</button></div></article>`;
+      const payoutRange=isMachine?`${Math.min(...item.prizes.map(p=>p.tickets))}–${Math.max(...item.prizes.map(p=>p.tickets))} tickets per win`:"";
+      return `<article class="shop-card ${equipped?"equipped":""}" style="--item-accent:${item.accent||item.color}"><div class="shop-preview ${isMachine?"":"claw-preview"}">${isMachine?item.prizes[0].icon:item.mark}</div><div class="shop-info"><small>${isMachine?"NEW CABINET":owned?"OWNED COSMETIC":"TODAY'S FEATURE"}</small><h3>${item.name}</h3><p>${isMachine?`${item.difficulty}. ${payoutRange}.`:item.description}</p><button class="buy-btn" data-shop-id="${item.id}" ${owned&&isMachine||equipped?"disabled":""}>${buttonLabel}</button></div></article>`;
     }).join("");
     document.querySelectorAll(".buy-btn:not(:disabled)").forEach(btn=>btn.addEventListener("click",()=>buyOrEquip(btn.dataset.shopId)));
   }
